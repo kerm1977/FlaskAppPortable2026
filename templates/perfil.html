@@ -2,54 +2,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-<style>
-    /* Estilos para el Modo Vista vs Modo Edición */
-    #profile-wrapper.view-mode .edit-only { display: none !important; }
-    #profile-wrapper.edit-mode .read-only { display: none !important; }
-    
-    #profile-wrapper.view-mode .form-control {
-        background: transparent !important;
-        border-color: transparent !important;
-        padding-left: 0;
-        padding-right: 0;
-        box-shadow: none !important;
-        pointer-events: none;
-        color: #fff !important;
-        font-size: 1.1rem;
-        font-weight: 500;
-    }
-    
-    #profile-wrapper.view-mode label {
-        opacity: 0.7;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 0;
-    }
-    
-    #profile-wrapper.view-mode .input-group-text {
-        background: transparent !important;
-        border-color: transparent !important;
-        padding-left: 0;
-        padding-right: 15px;
-        color: rgba(255,255,255,0.9) !important;
-    }
-
-    #profile-wrapper.view-mode #profile-preview-container .position-relative {
-        cursor: default !important;
-        transform: none !important;
-    }
-
-    .dynamic-icon { transition: transform 0.2s ease; }
-    .input-group:hover .dynamic-icon { transform: scale(1.15); }
-</style>
-
 <div class="row justify-content-center">
     <div class="col-md-8 glass-panel mb-5 view-mode" id="profile-wrapper">
         <h2 class="text-center mb-4"><i class="bi bi-person-vcard"></i> Mi Perfil</h2>
         
         <div class="text-center mb-4" id="profile-preview-container">
-            <div class="position-relative d-inline-block" style="cursor: pointer; transition: transform 0.2s;" onmouseover="if(document.getElementById('profile-wrapper').classList.contains('edit-mode')) this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="triggerImageUpload()" title="Haz clic para cambiar tu foto">
+            <div class="position-relative d-inline-block interactive-avatar" id="profile-avatar-wrapper" title="Haz clic para cambiar tu foto">
                 <img id="current-profile-img" src="{{ user.imagen_flyer if user.imagen_flyer else 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=' }}" alt="Perfil" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.3); display: {{ 'inline-block' if user.imagen_flyer else 'none' }};">
                 <div id="placeholder-profile-img" style="width: 150px; height: 150px; border-radius: 50%; background: rgba(255,255,255,0.1); align-items: center; justify-content: center; border: 3px solid rgba(255,255,255,0.3); display: {{ 'none' if user.imagen_flyer else 'inline-flex' }};">
                     <i class="bi bi-person-fill" style="font-size: 4rem; color: rgba(255,255,255,0.5);"></i>
@@ -70,11 +28,11 @@
                 <img id="image-to-crop" style="display: block; max-width: 100%; max-height: 100%; object-fit: contain;">
             </div>
             <div id="editor-controls" style="display: none;" class="mb-4 d-flex gap-2 justify-content-center flex-wrap">
-                <button type="button" class="btn glass-btn" onclick="cropper.zoom(0.1)" title="Aumentar"><i class="bi bi-zoom-in"></i></button>
-                <button type="button" class="btn glass-btn" onclick="cropper.zoom(-0.1)" title="Disminuir"><i class="bi bi-zoom-out"></i></button>
-                <button type="button" class="btn glass-btn" onclick="cropper.setDragMode('move')" title="Mover (X, Y)"><i class="bi bi-arrows-move"></i></button>
-                <button type="button" class="btn btn-success glass-btn" onclick="saveCrop()"><i class="bi bi-check2-circle"></i> Aplicar Foto</button>
-                <button type="button" class="btn btn-danger glass-btn" onclick="cancelCrop()"><i class="bi bi-x-circle"></i> Cancelar Recorte</button>
+                <button type="button" class="btn glass-btn" id="btn-crop-zoom-in" title="Aumentar"><i class="bi bi-zoom-in"></i></button>
+                <button type="button" class="btn glass-btn" id="btn-crop-zoom-out" title="Disminuir"><i class="bi bi-zoom-out"></i></button>
+                <button type="button" class="btn glass-btn" id="btn-crop-move" title="Mover (X, Y)"><i class="bi bi-arrows-move"></i></button>
+                <button type="button" class="btn btn-success glass-btn" id="btn-crop-save"><i class="bi bi-check2-circle"></i> Aplicar Foto</button>
+                <button type="button" class="btn btn-danger glass-btn" id="btn-crop-cancel"><i class="bi bi-x-circle"></i> Cancelar Recorte</button>
             </div>
         </div>
 
@@ -134,7 +92,7 @@
                     <option value="Usuario">Usuario</option>
                     <option value="Otros">Otros</option>
                 </select>
-                <button type="button" class="btn glass-btn" onclick="addDynamicField()">Agregar</button>
+                <button type="button" class="btn glass-btn" id="btn-add-dynamic-field">Agregar</button>
             </div>
 
             {% set icon_map = {
@@ -154,7 +112,7 @@
                                 <i class="bi {{ icon_map.get(key, 'bi-info-circle-fill') }} fs-5 dynamic-icon text-white"></i>
                             </span>
                             <input type="text" name="dynamic_{{ key }}" class="form-control glass-input" value="{{ value }}" readonly required>
-                            <button type="button" class="btn btn-danger glass-btn edit-only" onclick="this.parentElement.remove()">X</button>
+                            <button type="button" class="btn btn-danger glass-btn edit-only btn-remove-dynamic-field">X</button>
                         </div>
                     {% endfor %}
                 {% endif %}
@@ -169,15 +127,16 @@
             </div>
 
             <div class="d-flex justify-content-between mt-4">
-                <button type="button" class="btn glass-btn px-4 read-only" onclick="toggleEditMode()"><i class="bi bi-pencil"></i> Editar Perfil</button>
+                <button type="button" class="btn glass-btn px-4 read-only" id="btn-edit-profile"><i class="bi bi-pencil"></i> Editar Perfil</button>
                 <button type="button" class="btn btn-outline-info glass-btn read-only" data-bs-toggle="modal" data-bs-target="#carnetModal"><i class="bi bi-person-badge"></i> Ver Carnet</button>
-                <button type="button" class="btn btn-secondary glass-btn px-4 edit-only" onclick="location.reload()"><i class="bi bi-x-circle"></i> Cancelar</button>
+                <button type="button" class="btn btn-secondary glass-btn px-4 edit-only" id="btn-cancel-profile"><i class="bi bi-x-circle"></i> Cancelar</button>
                 <button type="submit" class="btn btn-success glass-btn px-4 edit-only" id="submit-btn"><i class="bi bi-save"></i> Guardar Cambios</button>
             </div>
         </form>
 
         <hr class="bg-white my-4 edit-only">
         <div class="text-center edit-only">
+            <!-- Funciones de base.html se mantienen inline por estar globales -->
             <button class="btn btn-warning glass-btn" onclick="confirmDelete('/user/delete_account')"><i class="bi bi-exclamation-triangle"></i> Eliminar Mi Cuenta</button>
         </div>
     </div>
@@ -203,23 +162,21 @@
                         <h6 class="mb-3 text-warning"><i class="bi bi-1-circle"></i> Verificar Identidad</h6>
                         
                         <p class="small mb-1 fw-bold text-white-50">Opción A: Credenciales</p>
-                        
-                        <!-- CONTENEDOR DE ERROR REUBICADO EXACTAMENTE AQUÍ DEBAJO DE OPCIÓN A -->
                         <div id="cred-feedback" class="text-start mb-2"></div>
                         
                         <div class="mb-2 position-relative">
                             <div class="input-group">
                                 <input type="password" id="curr-pwd" name="current_password" class="form-control glass-input" placeholder="Contraseña Actual">
-                                <button class="btn glass-btn" type="button" onclick="togglePassword('curr-pwd', 'eye-curr')">
+                                <button class="btn glass-btn btn-toggle-password" type="button" data-target="curr-pwd" data-icon="eye-curr">
                                     <i class="bi bi-eye" id="eye-curr"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <input type="text" id="curr-pin" name="current_pin" class="form-control glass-input" placeholder="PIN de 6 dígitos" pattern="\d{6}" maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                            <input type="text" id="curr-pin" name="current_pin" class="form-control glass-input" placeholder="PIN de 6 dígitos" pattern="\d{6}" maxlength="6">
                         </div>
                         
-                        <button type="button" id="btn-verify-cred" class="btn btn-outline-warning btn-sm glass-btn w-100 mb-2" onclick="verifyCredentialsAjax()">Verificar Credenciales</button>
+                        <button type="button" id="btn-verify-cred" class="btn btn-outline-warning btn-sm glass-btn w-100 mb-2">Verificar Credenciales</button>
 
                         <div class="text-center my-3 text-white-50 fw-bold">- O -</div>
                         
@@ -227,24 +184,24 @@
                         <div class="mb-2">
                             <div class="input-group">
                                 <input type="file" id="key_file_input" name="key_file" class="form-control glass-input" accept=".txt,.json">
-                                <button class="btn btn-outline-info glass-btn" type="button" onclick="verifyKeyAjax()"><i class="bi bi-check2-circle"></i> Verificar</button>
+                                <button class="btn btn-outline-info glass-btn" type="button" id="btn-verify-key"><i class="bi bi-check2-circle"></i> Verificar</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Nueva Contraseña (Bloqueada por defecto) -->
+                    <!-- Nueva Contraseña -->
                     <div class="glass-panel p-3" id="new-pwd-section" style="background: rgba(0,0,0,0.1); opacity: 0.5;">
                         <h6 class="mb-3 text-success"><i class="bi bi-2-circle"></i> Nueva Contraseña</h6>
                         <div class="mb-3 position-relative">
                             <div class="input-group">
                                 <input type="password" id="new-pwd" name="new_password" class="form-control glass-input new-pwd-field" required minlength="6" placeholder="Nueva Contraseña" disabled>
-                                <button class="btn glass-btn new-pwd-field" type="button" onclick="togglePassword('new-pwd', 'eye-np1')" disabled><i class="bi bi-eye" id="eye-np1"></i></button>
+                                <button class="btn glass-btn new-pwd-field btn-toggle-password" type="button" data-target="new-pwd" data-icon="eye-np1" disabled><i class="bi bi-eye" id="eye-np1"></i></button>
                             </div>
                         </div>
                         <div class="mb-2 position-relative">
                             <div class="input-group">
                                 <input type="password" id="verify-new-pwd" name="verify_new_password" class="form-control glass-input new-pwd-field" required minlength="6" placeholder="Verificar Nueva Contraseña" disabled>
-                                <button class="btn glass-btn new-pwd-field" type="button" onclick="togglePassword('verify-new-pwd', 'eye-np2')" disabled><i class="bi bi-eye" id="eye-np2"></i></button>
+                                <button class="btn glass-btn new-pwd-field btn-toggle-password" type="button" data-target="verify-new-pwd" data-icon="eye-np2" disabled><i class="bi bi-eye" id="eye-np2"></i></button>
                             </div>
                         </div>
                     </div>
@@ -264,27 +221,25 @@
         <div class="modal-content">
             <form action="{{ url_for('user.change_pin_profile') }}" method="POST">
                 <div class="modal-header border-0">
-                    <h5 class="modal-title" id="changePinModalLabel"><i class="bi bi-123"></i> Cambiar PIN de Recuperación</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="changePinModalLabel"><i class="bi bi-123"></i> Cambiar PIN</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                
                 <div class="modal-body border-0">
                     <div class="alert alert-info glass-panel py-2 mb-4" style="font-size: 0.85rem;">
                         Ingresa tu contraseña actual para autorizar el cambio de PIN.
                     </div>
-
                     <div class="mb-3 position-relative">
                         <label>Contraseña Actual</label>
                         <div class="input-group">
                             <input type="password" id="pin-curr-pwd" name="current_password" class="form-control glass-input" required>
-                            <button class="btn glass-btn" type="button" onclick="togglePassword('pin-curr-pwd', 'eye-pin-curr')">
+                            <button class="btn glass-btn btn-toggle-password" type="button" data-target="pin-curr-pwd" data-icon="eye-pin-curr">
                                 <i class="bi bi-eye" id="eye-pin-curr"></i>
                             </button>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label>Nuevo PIN (6 dígitos)</label>
-                        <input type="text" name="new_pin" class="form-control glass-input" pattern="\d{6}" maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required>
+                        <input type="text" id="pin-new-input" name="new_pin" class="form-control glass-input" pattern="\d{6}" maxlength="6" required>
                     </div>
                 </div>
                 <div class="modal-footer border-0 justify-content-center">
@@ -297,12 +252,12 @@
 </div>
 
 <!-- Modal Carnet -->
-<div class="modal fade glass-modal" id="carnetModal" tabindex="-1" aria-labelledby="carnetModalLabel" aria-hidden="true">
+<div class="modal fade glass-modal" id="carnetModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header border-0">
-                <h5 class="modal-title" id="carnetModalLabel"><i class="bi bi-person-vcard"></i> Tu Carnet Digital</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title"><i class="bi bi-person-vcard"></i> Tu Carnet Digital</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             
             <div class="modal-body d-flex justify-content-center border-0 p-4">
@@ -334,338 +289,29 @@
             </div>
             <div class="modal-footer border-0 justify-content-center">
                 <button type="button" class="btn btn-secondary glass-btn" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-success glass-btn" onclick="descargarCarnet()" id="btn-descargar"><i class="bi bi-download"></i> Descargar PNG</button>
+                <button type="button" class="btn btn-success glass-btn" id="btn-descargar"><i class="bi bi-download"></i> Descargar PNG</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Renderizamos div invisible si es necesario auto-descargar la llave -->
 {% if session.pop('trigger_download', False) %}
-<script>
-    window.onload = function() {
-        const downloadUrl = "{{ url_for('user.download_key') }}";
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    }
-</script>
+    <div id="auto-download-key-trigger" data-url="{{ url_for('user.download_key') }}" style="display:none;"></div>
 {% endif %}
 
+<!-- Puente: Variables de Jinja inyectadas para el JS Externo -->
 <script>
-// ==========================================
-// SEGURIDAD: VERIFICACIÓN Y BLOQUEO DEL SERVIDOR
-// ==========================================
-let lockoutTimer = null;
-
-function togglePassword(inputId, iconId) {
-    const input = document.getElementById(inputId);
-    const icon = document.getElementById(iconId);
-    if (input.type === 'password') {
-        input.type = 'text'; icon.classList.replace('bi-eye', 'bi-eye-slash');
-    } else {
-        input.type = 'password'; icon.classList.replace('bi-eye-slash', 'bi-eye');
-    }
-}
-
-function unlockNewPasswordFields(unlock) {
-    const fields = document.querySelectorAll('.new-pwd-field');
-    const submitBtn = document.getElementById('btn-submit-pass');
-    const section = document.getElementById('new-pwd-section');
-    
-    fields.forEach(el => el.disabled = !unlock);
-    submitBtn.disabled = !unlock;
-    section.style.opacity = unlock ? '1' : '0.5';
-}
-
-function displayLockoutUI(rem) {
-    const feedback = document.getElementById('cred-feedback');
-    let h = Math.floor(rem / 3600);
-    let m = Math.floor((rem % 3600) / 60);
-    let s = rem % 60;
-    
-    let timeStr = "";
-    if(h > 0) timeStr += `${h}h `;
-    timeStr += `${m}:${s < 10 ? '0' : ''}${s}`;
-    
-    feedback.innerHTML = `
-        <div class="text-danger small fw-bold lh-sm mb-2">
-            <i class="bi bi-x-octagon-fill"></i> Verificación fallida. Credenciales incorrectas o llave inválida.<br>
-            <span class="text-warning mt-1 d-block"><i class="bi bi-lock-fill"></i> Bloqueado por ${timeStr}. Usa la Opción B si lo prefieres.</span>
-        </div>`;
-}
-
-function applyLockout(remainingSeconds) {
-    const pwdInput = document.getElementById('curr-pwd');
-    const pinInput = document.getElementById('curr-pin');
-    const btnVerify = document.getElementById('btn-verify-cred');
-    
-    pwdInput.disabled = true;
-    pinInput.disabled = true;
-    btnVerify.disabled = true;
-    
-    if(document.getElementById('key_file_input').files.length === 0) {
-        unlockNewPasswordFields(false);
-    }
-
-    if(lockoutTimer) clearInterval(lockoutTimer);
-    
-    let rem = remainingSeconds;
-    displayLockoutUI(rem);
-    
-    lockoutTimer = setInterval(() => {
-        rem--;
-        if(rem <= 0) {
-            clearInterval(lockoutTimer);
-            pwdInput.disabled = false;
-            pinInput.disabled = false;
-            btnVerify.disabled = false;
-            document.getElementById('cred-feedback').innerHTML = '';
-        } else {
-            displayLockoutUI(rem);
-        }
-    }, 1000);
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-    const initialLockout = {{ lockout_remaining | default(0) }};
-    if (initialLockout > 0) {
-        applyLockout(initialLockout);
-    }
-});
-
-async function verifyCredentialsAjax() {
-    const pwd = document.getElementById('curr-pwd').value;
-    const pin = document.getElementById('curr-pin').value;
-    const feedback = document.getElementById('cred-feedback');
-    
-    if(!pwd || !pin) {
-        feedback.innerHTML = '<span class="text-warning small mb-2 d-block"><i class="bi bi-exclamation-circle"></i> Ingresa la contraseña y el PIN.</span>';
-        return;
-    }
-
-    try {
-        const res = await fetch("{{ url_for('user.verify_credentials') }}", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({password: pwd, pin: pin})
-        });
-        
-        const data = await res.json();
-        
-        if(data.success) {
-            feedback.innerHTML = '<span class="text-success small fw-bold mb-2 d-block"><i class="bi bi-check-circle-fill"></i> ¡Correcto! Ya puedes cambiar tu contraseña.</span>';
-            unlockNewPasswordFields(true);
-            document.getElementById('key_file_input').value = '';
-        } else if (data.locked) {
-            applyLockout(data.remaining_seconds);
-        }
-    } catch(err) {
-        console.error(err);
-    }
-}
-
-// Nueva función para verificar la Llave en tiempo real (Opción B)
-async function verifyKeyAjax() {
-    const fileInput = document.getElementById('key_file_input');
-    const feedback = document.getElementById('cred-feedback');
-    
-    if(fileInput.files.length === 0) {
-        feedback.innerHTML = '<span class="text-warning small mb-2 d-block"><i class="bi bi-exclamation-circle"></i> Selecciona un archivo de llave primero.</span>';
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('key_file', fileInput.files[0]);
-    
-    try {
-        const res = await fetch("{{ url_for('user.verify_key_ajax') }}", {
-            method: "POST",
-            body: formData
-        });
-        const data = await res.json();
-        
-        if(data.success) {
-            let prependHtml = '<span class="text-info small fw-bold d-block mb-2"><i class="bi bi-file-earmark-check"></i> ¡Llave correcta! Crea tu nueva contraseña.</span>';
-            
-            if(lockoutTimer) {
-                if(!feedback.innerHTML.includes('¡Llave correcta!')) {
-                    feedback.innerHTML = prependHtml + feedback.innerHTML;
-                }
-            } else {
-                feedback.innerHTML = prependHtml;
-            }
-            unlockNewPasswordFields(true);
-            
-            // Limpiamos los inputs de Opción A por seguridad
-            document.getElementById('curr-pwd').value = '';
-            document.getElementById('curr-pin').value = '';
-            
-        } else {
-            feedback.innerHTML = `<div class="text-danger small fw-bold lh-sm mb-2"><i class="bi bi-x-octagon-fill"></i> Verificación fallida. Credenciales incorrectas o llave inválida.</div>`;
-            unlockNewPasswordFields(false);
-            fileInput.value = ''; // Resetea el archivo falso
-        }
-    } catch(err) {
-        console.error(err);
-    }
-}
-
-// Bloqueamos el envío o verificación si quitan el archivo
-document.getElementById('key_file_input').addEventListener('change', function(e) {
-    if(this.files.length === 0) {
-        if(!lockoutTimer) {
-            document.getElementById('cred-feedback').innerHTML = '';
-        } else {
-            const feedback = document.getElementById('cred-feedback');
-            feedback.innerHTML = feedback.innerHTML.replace(/<span.*?¡Llave correcta!.*?<\/span>/, '');
-        }
-        unlockNewPasswordFields(false);
-    }
-});
-
-// ==========================================
-// RESTO DEL CÓDIGO
-// ==========================================
-function toggleEditMode() {
-    const wrapper = document.getElementById('profile-wrapper');
-    wrapper.classList.remove('view-mode');
-    wrapper.classList.add('edit-mode');
-    const inputs = wrapper.querySelectorAll('form#perfil-form input[type="text"], form#perfil-form input[type="number"], form#perfil-form select');
-    inputs.forEach(input => input.removeAttribute('readonly'));
-}
-
-function triggerImageUpload() {
-    if (document.getElementById('profile-wrapper').classList.contains('edit-mode')) {
-        document.getElementById('flyer-input').click();
-    }
-}
-
-document.addEventListener("DOMContentLoaded", function(){
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) { return new bootstrap.Tooltip(tooltipTriggerEl); });
-});
-
-function addDynamicField() {
-    const container = document.getElementById('dynamic-fields-container');
-    const type = document.getElementById('field-selector').value;
-    if(!type) return;
-
-    const iconMap = {
-        'Telefono': 'bi-telephone-fill', 'Whatsapp': 'bi-whatsapp',
-        'Emergencia': 'bi-heart-pulse-fill', 'Contacto_Emergencia': 'bi-person-heart',
-        'Sangre': 'bi-droplet-fill', 'Nacimiento': 'bi-calendar-event-fill',
-        'Provincia': 'bi-map-fill', 'Pais': 'bi-globe-americas',
-        'Empresa': 'bi-building-fill', 'Nombre_Grupo': 'bi-people-fill',
-        'Usuario': 'bi-person-badge-fill', 'Otros': 'bi-info-circle-fill'
+    window.APP_CONFIG = {
+        lockoutRemaining: {{ lockout_remaining | default(0) }},
+        urls: {
+            verifyCredentials: "{{ url_for('user.verify_credentials') }}",
+            verifyKeyAjax: "{{ url_for('user.verify_key_ajax') }}"
+        },
+        userName: "{{ user.nombre }}"
     };
-
-    const div = document.createElement('div');
-    div.className = 'mb-3 input-group';
-    const iconClass = iconMap[type] || 'bi-info-circle-fill';
-    
-    let innerHTML = `<span class="input-group-text bg-transparent border-0 shadow-none pe-3" title="${type.replace('_', ' ')}" data-bs-toggle="tooltip"><i class="bi ${iconClass} fs-5 dynamic-icon text-white"></i></span>`;
-    
-    if(type === 'Sangre') {
-        innerHTML += `<select name="dynamic_Sangre" class="form-select glass-input"><option value="O+">O Positivo (O+)</option><option value="O-">O Negativo (O-)</option><option value="A+">A Positivo (A+)</option><option value="A-">A Negativo (A-)</option><option value="B+">B Positivo (B+)</option><option value="B-">B Negativo (B-)</option><option value="AB+">AB Positivo (AB+)</option><option value="AB-">AB Negativo (AB-)</option></select>`;
-    } else if (type === 'Provincia') {
-        innerHTML += `<select name="dynamic_Provincia" class="form-select glass-input"><option value="San José">San José</option><option value="Alajuela">Alajuela</option><option value="Cartago">Cartago</option><option value="Heredia">Heredia</option><option value="Guanacaste">Guanacaste</option><option value="Puntarenas">Puntarenas</option><option value="Limón">Limón</option></select>`;
-    } else if (type === 'Nacimiento') {
-        let currentYear = new Date().getFullYear();
-        innerHTML += `<input type="number" placeholder="Día" min="1" max="31" name="dynamic_DiaNac" class="form-control glass-input" required><input type="number" placeholder="Mes" min="1" max="12" name="dynamic_MesNac" class="form-control glass-input" required><input type="number" placeholder="Año" max="${currentYear - 16}" name="dynamic_AnoNac" class="form-control glass-input" required>`;
-    } else if (['Telefono', 'Whatsapp', 'Emergencia'].includes(type)) {
-        innerHTML += `<input type="text" name="dynamic_${type}" class="form-control glass-input" placeholder="Solo 8 números" pattern="\\d{8}" maxlength="8" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8);" required>`;
-    } else {
-        innerHTML += `<input type="text" name="dynamic_${type}" class="form-control glass-input" required>`;
-    }
-
-    innerHTML += `<button type="button" class="btn btn-danger glass-btn edit-only" onclick="this.parentElement.remove()">X</button>`;
-    div.innerHTML = innerHTML;
-    container.appendChild(div);
-    new bootstrap.Tooltip(div.querySelector('[data-bs-toggle="tooltip"]'));
-}
-
-let cropper;
-document.getElementById('flyer-input').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const imgElement = document.getElementById('image-to-crop');
-        document.getElementById('editor-container').style.display = 'block';
-        document.getElementById('editor-controls').style.display = 'flex';
-        document.getElementById('profile-preview-container').style.display = 'none';
-        document.getElementById('submit-btn').disabled = true;
-        imgElement.onload = function() {
-            if (cropper) cropper.destroy();
-            cropper = new Cropper(imgElement, {
-                viewMode: 1, dragMode: 'move', aspectRatio: 1, autoCropArea: 0.8,
-                restore: false, guides: true, center: true, highlight: false,
-                cropBoxMovable: true, cropBoxResizable: true, toggleDragModeOnDblclick: false,
-            });
-        };
-        imgElement.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-});
-
-function saveCrop() {
-    if (!cropper) return;
-    const canvas = cropper.getCroppedCanvas({ width: 800, height: 800 });
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
-    const sizeInMB = (Math.round((dataUrl.length * 3) / 4) / (1024 * 1024)).toFixed(2);
-    
-    if (sizeInMB > 1.0) return alert("La imagen sigue siendo mayor a 1MB. Por favor selecciona otra imagen.");
-
-    document.getElementById('current-profile-img').src = dataUrl;
-    document.getElementById('current-profile-img').style.display = 'inline-block';
-    document.getElementById('placeholder-profile-img').style.display = 'none';
-    document.getElementById('carnet-img').src = dataUrl;
-    document.getElementById('carnet-img').style.display = 'block';
-    document.getElementById('carnet-placeholder').style.display = 'none';
-    document.getElementById('imagen_flyer_hidden').value = dataUrl;
-    
-    const msg = document.getElementById('compression-msg');
-    msg.innerHTML = `<i class="bi bi-check-circle-fill"></i> Foto actualizada temporalmente. <b>Debes dar clic en "Guardar Cambios" para finalizar.</b>`;
-    msg.style.display = 'block';
-    cancelCrop();
-}
-
-function cancelCrop() {
-    document.getElementById('editor-container').style.display = 'none';
-    document.getElementById('editor-controls').style.display = 'none';
-    document.getElementById('profile-preview-container').style.display = 'block';
-    document.getElementById('submit-btn').disabled = false;
-    document.getElementById('flyer-input').value = "";
-}
-
-function descargarCarnet() {
-    const carnetNode = document.getElementById('carnet-export-node');
-    const btn = document.getElementById('btn-descargar');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
-    btn.disabled = true;
-
-    setTimeout(() => {
-        window.html2canvas(carnetNode, {
-            scale: 3, backgroundColor: 'transparent', useCORS: true, allowTaint: true, logging: false
-        }).then(canvas => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            let enlace = document.createElement('a');
-            enlace.download = `Carnet_${'{{ user.nombre }}'}.png`;
-            enlace.href = canvas.toDataURL('image/png');
-            document.body.appendChild(enlace);
-            enlace.click();
-            document.body.removeChild(enlace);
-        }).catch(err => {
-            console.error("Error capturando el carnet:", err);
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            alert("Ocurrió un error al intentar exportar la imagen.");
-        });
-    }, 300);
-}
 </script>
+
+<!-- Truco de Caché: Agregamos ?v={{ range(1, 9999) | random }} para forzar al navegador a cargar el JS nuevo -->
+<script src="{{ url_for('static', filename='js/perfilBloqueo.js') }}?v={{ range(1, 9999) | random }}"></script>
 {% endblock %}

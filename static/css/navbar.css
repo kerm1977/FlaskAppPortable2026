@@ -1,0 +1,86 @@
+/* =========================================
+   ESTILOS FORZADOS PARA LA BARRA MÓVIL
+   ========================================= */
+.mobile-bottom-bar {
+    display: none !important; /* Oculto por defecto en escritorio, forzado */
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    padding: 12px 0 !important;
+    z-index: 999999 !important; /* Nivel máximo absoluto */
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.mobile-icon {
+    color: #fff !important;
+    font-size: 1.6rem !important;
+    text-decoration: none !important;
+    transition: transform 0.2s !important;
+}
+
+.mobile-icon:hover {
+    transform: scale(1.2) !important;
+    color: #4ade80 !important;
+}
+
+/* Ajuste para los textos de la barra inferior cuando no están logueados */
+.mobile-bottom-text {
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    text-decoration: none !important;
+    color: #fff !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 3px !important;
+}
+
+.mobile-bottom-text:hover {
+    color: rgba(255,255,255,0.8) !important;
+}
+
+/* Botón Flotante Volver */
+.floating-back-btn {
+    position: fixed !important;
+    bottom: 30px !important;
+    left: 30px !important;
+    z-index: 1040 !important;
+    border-radius: 50px !important;
+    padding: 10px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-weight: 500 !important;
+    transition: transform 0.2s, background 0.3s !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+}
+
+.floating-back-btn:hover {
+    transform: scale(1.05) !important;
+}
+
+/* Media Query EXCLUSIVO para Vistas Móviles y Tablets (Aumentado a 768px) */
+@media screen and (max-width: 768px) {
+    .mobile-bottom-bar {
+        display: flex !important; /* Fuerza la visibilidad de la barra sin importar qué */
+    }
+    body {
+        padding-bottom: 90px !important; /* Espacio para que el contenido no quede detrás de la barra */
+    }
+    .floating-back-btn {
+        bottom: 85px !important; /* Sube el botón flotante para no chocar con la barra */
+        left: 15px !important;
+        padding: 8px 15px !important;
+        font-size: 0.9rem !important;
+    }
+}

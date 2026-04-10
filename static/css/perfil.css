@@ -1,0 +1,39 @@
+/* Estilos para el Modo Vista vs Modo Edición */
+#profile-wrapper.view-mode .edit-only { display: none !important; }
+#profile-wrapper.edit-mode .read-only { display: none !important; }
+
+#profile-wrapper.view-mode .form-control {
+    background: transparent !important;
+    border-color: transparent !important;
+    padding-left: 0;
+    padding-right: 0;
+    box-shadow: none !important;
+    pointer-events: none;
+    color: #fff !important;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+#profile-wrapper.view-mode label {
+    opacity: 0.7;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+}
+
+#profile-wrapper.view-mode .input-group-text {
+    background: transparent !important;
+    border-color: transparent !important;
+    padding-left: 0;
+    padding-right: 15px;
+    color: rgba(255,255,255,0.9) !important;
+}
+
+#profile-wrapper.view-mode #profile-preview-container .position-relative {
+    cursor: default !important;
+    transform: none !important;
+}
+
+.dynamic-icon { transition: transform 0.2s ease; }
+.input-group:hover .dynamic-icon { transform: scale(1.15); }
