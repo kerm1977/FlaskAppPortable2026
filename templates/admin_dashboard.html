@@ -103,51 +103,108 @@
                                 <div class="d-flex justify-content-center gap-2">
                                     <button type="submit" class="btn btn-success btn-sm glass-btn" title="Guardar Permisos"><i class="bi bi-check-lg"></i></button>
                                     <button type="button" class="btn btn-info btn-sm glass-btn" data-bs-toggle="modal" data-bs-target="#dataModal{{ u.id }}" title="Ver Datos Completos"><i class="bi bi-eye"></i></button>
+                                    <!-- Botón para Editar al Usuario -->
+                                    <a href="{{ url_for('user.admin_edit_user', user_id=u.id) }}" class="btn btn-primary btn-sm glass-btn" title="Editar Perfil de Usuario"><i class="bi bi-pencil"></i></a>
+                                    <!-- Botón de Secuestro/Rescate de Cuenta -->
+                                    <button type="button" class="btn btn-danger btn-sm glass-btn" data-bs-toggle="modal" data-bs-target="#resetModal{{ u.id }}" title="Rescatar Cuenta (Secuestro)"><i class="bi bi-shield-lock"></i></button>
                                 </div>
                             </td>
                         </form>
                     </tr>
-
-                    <!-- Modal para ver ABSOLUTAMENTE TODOS los datos del usuario -->
-                    <div class="modal fade glass-modal" id="dataModal{{ u.id }}" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-                                <div class="modal-header border-0">
-                                    <h5 class="modal-title"><i class="bi bi-person-lines-fill text-info"></i> Datos de {{ u.nombre }}</h5>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body border-0">
-                                    <ul class="list-group list-group-flush" style="border-radius: 10px; overflow: hidden;">
-                                        <li class="list-group-item bg-transparent text-white border-white-50"><strong class="text-info">Nombre Completo:</strong><br>{{ u.nombre }} {{ u.primer_apellido }} {{ u.segundo_apellido }}</li>
-                                        <li class="list-group-item bg-transparent text-white border-white-50"><strong class="text-info">Email:</strong><br>{{ u.email }}</li>
-                                        <li class="list-group-item bg-transparent text-white border-white-50">
-                                            <strong class="text-info">Rol Actual:</strong><br>
-                                            {{ u.rol }} 
-                                            {% if u.is_superuser %}<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star-fill"></i> Superusuario</span>{% endif %}
-                                        </li>
-                                        <li class="list-group-item bg-transparent text-white border-white-50"><strong class="text-info">Fecha de Registro:</strong><br>{{ u.fecha_registro.strftime('%Y-%m-%d %H:%M:%S') }}</li>
-                                        
-                                        {% if u.datos_adicionales %}
-                                            <li class="list-group-item bg-transparent text-white border-0 mt-3"><strong class="text-warning">Campos Dinámicos:</strong></li>
-                                            {% for key, val in u.datos_adicionales.items() %}
-                                                <li class="list-group-item bg-transparent text-white border-white-50 d-flex justify-content-between">
-                                                    <span class="text-white-50">{{ key.replace('_', ' ') }}:</span>
-                                                    <span>{{ val }}</span>
-                                                </li>
-                                            {% endfor %}
-                                        {% else %}
-                                            <li class="list-group-item bg-transparent text-white-50 border-0 mt-2">No ha agregado datos dinámicos adicionales.</li>
-                                        {% endif %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
+        <!-- FIX BUG MODAL: Modales movidos FUERA de la tabla para que el backdrop (fondo oscuro) no los bloquee -->
+        {% for u in usuarios %}
+        
+        <!-- Modal para ver ABSOLUTAMENTE TODOS los datos del usuario -->
+        <div class="modal fade glass-modal" id="dataModal{{ u.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title"><i class="bi bi-person-lines-fill text-info"></i> Datos de {{ u.nombre }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body border-0">
+                        <ul class="list-group list-group-flush" style="border-radius: 10px; overflow: hidden;">
+                            <li class="list-group-item bg-transparent text-white border-white-50"><strong class="text-info">Nombre Completo:</strong><br>{{ u.nombre }} {{ u.primer_apellido }} {{ u.segundo_apellido }}</li>
+                            <li class="list-group-item bg-transparent text-white border-white-50"><strong class="text-info">Email:</strong><br>{{ u.email }}</li>
+                            <li class="list-group-item bg-transparent text-white border-white-50">
+                                <strong class="text-info">Rol Actual:</strong><br>
+                                {{ u.rol }} 
+                                {% if u.is_superuser %}<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star-fill"></i> Superusuario</span>{% endif %}
+                            </li>
+                            <li class="list-group-item bg-transparent text-white border-white-50"><strong class="text-info">Fecha de Registro:</strong><br>{{ u.fecha_registro.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+                            
+                            {% if u.datos_adicionales %}
+                                <li class="list-group-item bg-transparent text-white border-0 mt-3"><strong class="text-warning">Campos Dinámicos:</strong></li>
+                                {% for key, val in u.datos_adicionales.items() %}
+                                    <li class="list-group-item bg-transparent text-white border-white-50 d-flex justify-content-between">
+                                        <span class="text-white-50">{{ key.replace('_', ' ') }}:</span>
+                                        <span>{{ val }}</span>
+                                    </li>
+                                {% endfor %}
+                            {% else %}
+                                <li class="list-group-item bg-transparent text-white-50 border-0 mt-2">No ha agregado datos dinámicos adicionales.</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Rescate (Secuestro de Cuenta) -->
+        <div class="modal fade glass-modal" id="resetModal{{ u.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                    <form action="{{ url_for('user.admin_reset_user', user_id=u.id) }}" method="POST">
+                        <div class="modal-header border-0">
+                            <h5 class="modal-title text-danger"><i class="bi bi-shield-lock-fill"></i> Rescatar Cuenta</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body border-0">
+                            <div class="alert alert-danger py-2 mb-3" style="font-size: 0.85rem; background: rgba(220, 53, 69, 0.2); border: 1px solid rgba(220, 53, 69, 0.4); color: white;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Forzará nuevas credenciales para <strong>{{ u.email }}</strong> y generará una nueva llave.
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-white-50 small">Nueva Contraseña</label>
+                                <!-- Se usa type="text" para que el admin pueda ver lo que está escribiendo y enviarlo al usuario -->
+                                <input type="text" name="new_password" class="form-control glass-input" required minlength="6" placeholder="Ingresa contraseña">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-white-50 small">Nuevo PIN (6 dígitos)</label>
+                                <input type="text" name="new_pin" class="form-control glass-input" required pattern="\d{6}" maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Ej: 123456">
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 justify-content-center">
+                            <button type="button" class="btn btn-secondary glass-btn" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-danger glass-btn w-100"><i class="bi bi-key-fill"></i> Rescatar y Descargar Llave</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% endfor %}
+
     </div>
 </div>
+
+<!-- Lógica de Descarga Automática de la Llave -->
+{% if session.pop('trigger_download', False) %}
+<script>
+    window.addEventListener('load', function() {
+        const downloadUrl = "{{ url_for('user.download_key') }}";
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+</script>
+{% endif %}
+
 {% endblock %}

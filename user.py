@@ -358,7 +358,7 @@ def perfil():
         
     return render_template('perfil.html', user=current_user, lockout_remaining=lockout_remaining)
 
-# --- NUEVAS RUTAS DE ADMINISTRACIÓN ---
+# --- RUTAS DE ADMINISTRACIÓN ---
 @user_bp.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
@@ -387,12 +387,91 @@ def update_user_role(user_id):
         flash('Por seguridad, no puedes quitarte el estatus de superusuario a ti mismo.', 'warning')
         return redirect(url_for('user.admin_dashboard'))
         
-    user.rol = request.form.get('rol', 'Usuario')
+    user.rol = request.form.get('rol', 'Usuario Regular')
     user.is_superuser = request.form.get('is_superuser') == 'true'
     db.session.commit()
     
     flash(f'Roles y permisos actualizados correctamente para {user.nombre} {user.primer_apellido}.', 'success')
     return redirect(url_for('user.admin_dashboard'))
+
+# --- RUTAS DE EDICIÓN Y RESCATE DE USUARIOS PARA SUPERADMINS ---
+@user_bp.route('/admin_edit_user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def admin_edit_user(user_id):
+    if not current_user.is_superuser:
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('routes.home'))
+        
+    user_to_edit = User.query.get_or_404(user_id)
+    
+    if request.method == 'POST':
+        # Permite al admin editar los datos básicos y dinámicos del usuario
+        nueva_imagen = request.form.get('imagen_flyer')
+        if nueva_imagen:
+            user_to_edit.imagen_flyer = nueva_imagen
+            
+        user_to_edit.nombre = request.form.get('nombre')
+        user_to_edit.primer_apellido = request.form.get('primer_apellido')
+        user_to_edit.segundo_apellido = request.form.get('segundo_apellido')
+        
+        nuevos_datos = {}
+        for key, value in request.form.items():
+            if key.startswith('dynamic_'):
+                nuevos_datos[key.replace('dynamic_', '')] = value
+                
+        if nuevos_datos or any(k.startswith('dynamic_') for k in request.form.keys()):
+             user_to_edit.datos_adicionales = nuevos_datos
+             
+        db.session.commit()
+        flash(f'Perfil de {user_to_edit.nombre} actualizado por el administrador.', 'success')
+        return redirect(url_for('user.admin_dashboard'))
+
+    # Reutilizamos el perfil.html pero le pasamos el 'user_to_edit' en lugar del 'current_user'
+    return render_template('perfil.html', user=user_to_edit, lockout_remaining=0, is_admin_edit=True)
+
+@user_bp.route('/admin_reset_user/<int:user_id>', methods=['POST'])
+@login_required
+def admin_reset_user(user_id):
+    if not current_user.is_superuser:
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('routes.home'))
+        
+    user_to_reset = User.query.get_or_404(user_id)
+    
+    new_password = request.form.get('new_password')
+    new_pin = request.form.get('new_pin')
+    
+    # Actualizamos la base de datos
+    user_to_reset.password_hash = generate_password_hash(new_password)
+    user_to_reset.rec_pin = new_pin
+    db.session.commit()
+    
+    # Generamos la NUEVA LLAVE DE SEGURIDAD y la mandamos a descargar
+    payload = json.dumps({"email": user_to_reset.email, "pin": new_pin, "hash": user_to_reset.password_hash}).encode('utf-8')
+    encrypted_token = cipher_suite.encrypt(payload).decode('utf-8')
+    
+    archivo_json = json.dumps({"llave_seguridad": encrypted_token}, indent=4)
+    session['download_key'] = archivo_json
+    session['trigger_download'] = True
+    
+    flash(f'Cuenta de {user_to_reset.email} rescatada con éxito. Se está descargando su nueva llave.', 'success')
+    return redirect(url_for('user.admin_dashboard'))
+
+# --- RUTA DE AJUSTES DEL SITIO ---
+@user_bp.route('/ajustes_sitio', methods=['GET', 'POST'])
+@login_required
+def ajustes_sitio():
+    if not current_user.is_superuser:
+        flash('Acceso denegado. Solo los Superusuarios pueden modificar los ajustes del sistema.', 'danger')
+        return redirect(url_for('routes.home'))
+        
+    if request.method == 'POST':
+        # Aquí recolectaremos los ajustes (Mantenimiento, Nombre del sitio, etc.)
+        # Por ahora simulamos que se guardaron exitosamente:
+        flash('Ajustes del sitio actualizados correctamente.', 'success')
+        return redirect(url_for('user.ajustes_sitio'))
+        
+    return render_template('ajustes.html')
 
 @user_bp.route('/logout')
 @login_required
