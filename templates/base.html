@@ -13,13 +13,120 @@
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/cropper.js') }}"></script>
     <script src="{{ url_for('static', filename='js/html2canvas.min.js') }}"></script>
+
+    <style>
+        /* =========================================
+           AJUSTE DEL BOTÓN CERRAR EN ALERTAS
+           ========================================= */
+        .alert-dismissible {
+            padding-right: 4rem !important; /* Espacio seguro para que el texto no choque con la X */
+            position: relative;
+        }
+        .alert-dismissible .btn-close {
+            position: absolute !important;
+            top: 50% !important;
+            right: 20px !important; /* Empuja la X hacia el centro horizontalmente */
+            transform: translateY(-50%) !important; /* Centrado vertical perfecto */
+            margin: 0 !important;
+            padding: 0.5rem !important;
+        }
+
+        /* =========================================
+           ESTILOS FORZADOS PARA LA BARRA MÓVIL
+           ========================================= */
+        .mobile-bottom-bar {
+            display: none !important; /* Oculto por defecto en escritorio, forzado */
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            background: rgba(255, 255, 255, 0.15) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+            justify-content: space-around !important;
+            align-items: center !important;
+            padding: 12px 0 !important;
+            z-index: 999999 !important; /* Nivel máximo absoluto */
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        .mobile-icon {
+            color: #fff !important;
+            font-size: 1.6rem !important;
+            text-decoration: none !important;
+            transition: transform 0.2s !important;
+        }
+
+        .mobile-icon:hover {
+            transform: scale(1.2) !important;
+            color: #4ade80 !important;
+        }
+
+        /* Ajuste para los textos de la barra inferior cuando no están logueados */
+        .mobile-bottom-text {
+            font-size: 0.75rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            text-decoration: none !important;
+            color: #fff !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 3px !important;
+        }
+
+        .mobile-bottom-text:hover {
+            color: rgba(255,255,255,0.8) !important;
+        }
+
+        /* Botón Flotante Volver */
+        .floating-back-btn {
+            position: fixed !important;
+            bottom: 30px !important;
+            left: 30px !important;
+            z-index: 1040 !important;
+            border-radius: 50px !important;
+            padding: 10px 20px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            font-weight: 500 !important;
+            transition: transform 0.2s, background 0.3s !important;
+            backdrop-filter: blur(15px) !important;
+            -webkit-backdrop-filter: blur(15px) !important;
+        }
+        
+        .floating-back-btn:hover {
+            transform: scale(1.05) !important;
+        }
+        
+        /* Media Query EXCLUSIVO para Vistas Móviles y Tablets (Aumentado a 768px) */
+        @media screen and (max-width: 768px) {
+            .mobile-bottom-bar {
+                display: flex !important; /* Fuerza la visibilidad de la barra sin importar qué */
+            }
+            body {
+                padding-bottom: 90px !important; /* Espacio para que el contenido no quede detrás de la barra */
+            }
+            .floating-back-btn {
+                bottom: 85px !important; /* Sube el botón flotante para no chocar con la barra */
+                left: 15px !important;
+                padding: 8px 15px !important;
+                font-size: 0.9rem !important;
+            }
+        }
+    </style>
 </head>
 <body>
 
-    <!-- Botón Flotante Global para Volver Atrás -->
+    <!-- Botón Flotante Global para Volver Atrás (Solo visible si está logueado y no está en Home) -->
+    {% if current_user.is_authenticated and request.endpoint != 'routes.home' %}
     <button onclick="window.history.length > 1 ? window.history.back() : window.location.href='/'" class="btn glass-btn floating-back-btn">
         <i class="bi bi-arrow-left"></i> Volver
     </button>
+    {% endif %}
 
     <nav class="navbar navbar-expand-lg navbar-dark glass-navbar mb-4">
         <div class="container">
@@ -34,10 +141,14 @@
     </nav>
 
     <div class="container pb-5">
+        <!-- ZONA DE MENSAJES DE ALERTA MODIFICADA CON LA "X" PARA CERRAR -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} glass-panel py-2 mb-3">{{ message }}</div>
+                    <div class="alert alert-{{ category }} alert-dismissible fade show glass-panel py-2 mb-3" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
@@ -90,7 +201,13 @@
         // Lógica de Eliminación de 3 pasos global
         let deleteUrl = '';
         let deleteStep = 1;
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        
+        // Se inicializa el modal solo si el elemento existe (evita errores en consola)
+        const deleteModalEl = document.getElementById('deleteModal');
+        let deleteModal = null;
+        if(deleteModalEl) {
+            deleteModal = new bootstrap.Modal(deleteModalEl);
+        }
 
         function confirmDelete(url) {
             deleteUrl = url;
@@ -98,7 +215,7 @@
             document.getElementById('deleteModalBody').innerText = '¿Estás seguro que deseas eliminar esto? (Paso 1 de 3)';
             document.getElementById('deleteModalBtn').className = 'btn btn-warning';
             document.getElementById('deleteModalBtn').innerText = 'Continuar';
-            deleteModal.show();
+            if(deleteModal) deleteModal.show();
         }
 
         function processDeleteStep() {

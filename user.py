@@ -358,6 +358,42 @@ def perfil():
         
     return render_template('perfil.html', user=current_user, lockout_remaining=lockout_remaining)
 
+# --- NUEVAS RUTAS DE ADMINISTRACIÓN ---
+@user_bp.route('/admin_dashboard')
+@login_required
+def admin_dashboard():
+    # Solo los superusuarios pueden entrar aquí
+    if not current_user.is_superuser:
+        flash('Acceso denegado. Se requieren permisos de Superusuario.', 'danger')
+        return redirect(url_for('routes.home'))
+        
+    # Extraer todos los usuarios (los más recientes primero)
+    usuarios = User.query.order_by(User.id.desc()).all()
+    total_usuarios = len(usuarios)
+    
+    return render_template('admin_dashboard.html', usuarios=usuarios, total_usuarios=total_usuarios)
+
+@user_bp.route('/update_user_role/<int:user_id>', methods=['POST'])
+@login_required
+def update_user_role(user_id):
+    if not current_user.is_superuser:
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('routes.home'))
+        
+    user = User.query.get_or_404(user_id)
+    
+    # Seguridad: Evitar que el admin maestro se quite el poder a sí mismo accidentalmente
+    if user.id == current_user.id and request.form.get('is_superuser') != 'true':
+        flash('Por seguridad, no puedes quitarte el estatus de superusuario a ti mismo.', 'warning')
+        return redirect(url_for('user.admin_dashboard'))
+        
+    user.rol = request.form.get('rol', 'Usuario')
+    user.is_superuser = request.form.get('is_superuser') == 'true'
+    db.session.commit()
+    
+    flash(f'Roles y permisos actualizados correctamente para {user.nombre} {user.primer_apellido}.', 'success')
+    return redirect(url_for('user.admin_dashboard'))
+
 @user_bp.route('/logout')
 @login_required
 def logout():

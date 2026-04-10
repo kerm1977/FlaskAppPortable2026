@@ -1,0 +1,153 @@
+<!-- templates/admin_dashboard.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .table-glass {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        overflow: hidden;
+        color: white;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    .table-glass th {
+        background: rgba(0, 0, 0, 0.3);
+        color: #4ade80;
+        border-bottom: 2px solid rgba(255,255,255,0.2);
+        font-weight: 600;
+    }
+    .table-glass td {
+        background: transparent;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        color: #fff;
+        vertical-align: middle;
+    }
+    .table-glass tr:hover td {
+        background: rgba(255,255,255,0.1);
+    }
+    .admin-avatar {
+        width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.3);
+    }
+    .admin-avatar-placeholder {
+        width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); 
+        display: inline-flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.3);
+    }
+</style>
+
+<div class="row justify-content-center mb-5">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0 text-warning"><i class="bi bi-shield-lock-fill"></i> Panel de Superusuario</h2>
+            <a href="{{ url_for('user.perfil') }}" class="btn btn-secondary glass-btn"><i class="bi bi-arrow-left"></i> Volver</a>
+        </div>
+        
+        <!-- Tarjeta de Resumen -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="glass-panel text-center py-3">
+                    <h1 class="display-5 text-info fw-bold">{{ total_usuarios }}</h1>
+                    <p class="mb-0 text-white-50 text-uppercase" style="letter-spacing: 2px; font-size: 0.8rem;">Usuarios Registrados</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla Interactiva de Usuarios -->
+        <div class="table-responsive table-glass">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="py-3 px-4">Usuario</th>
+                        <th class="py-3">Email</th>
+                        <th class="py-3 text-center">Registro</th>
+                        <th class="py-3">Asignar Rol</th>
+                        <th class="py-3 text-center">Superusuario</th>
+                        <th class="py-3 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in usuarios %}
+                    <tr>
+                        <td class="px-4">
+                            <div class="d-flex align-items-center gap-3">
+                                {% if u.imagen_flyer %}
+                                    <img src="{{ u.imagen_flyer }}" class="admin-avatar">
+                                {% else %}
+                                    <div class="admin-avatar-placeholder"><i class="bi bi-person-fill text-white-50"></i></div>
+                                {% endif %}
+                                <div>
+                                    <div class="fw-bold">{{ u.nombre }} {{ u.primer_apellido }}</div>
+                                    <div class="small text-white-50">ID: {{ "%05d" % u.id }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ u.email }}</td>
+                        <td class="text-center text-white-50 small">{{ u.fecha_registro.strftime('%d/%m/%Y') }}</td>
+                        
+                        <!-- Formulario Inline de Cambio de Rol -->
+                        <form action="{{ url_for('user.update_user_role', user_id=u.id) }}" method="POST">
+                            <td style="min-width: 180px;">
+                                <!-- Selector de Roles Oficiales -->
+                                <select name="rol" class="form-select form-select-sm glass-input">
+                                    <option value="Usuario Regular" {% if u.rol == 'Usuario Regular' or u.rol == 'Usuario' %}selected{% endif %}>Usuario Regular</option>
+                                    <option value="Administrador" {% if u.rol == 'Administrador' %}selected{% endif %}>Administrador</option>
+                                    <option value="Superusuario" {% if u.rol == 'Superusuario' or u.rol == 'Superusuario Total' %}selected{% endif %}>Superusuario</option>
+                                </select>
+                            </td>
+                            <td class="text-center">
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    <input class="form-check-input" type="checkbox" name="is_superuser" value="true" {% if u.is_superuser %}checked{% endif %}>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button type="submit" class="btn btn-success btn-sm glass-btn" title="Guardar Permisos"><i class="bi bi-check-lg"></i></button>
+                                    <button type="button" class="btn btn-info btn-sm glass-btn" data-bs-toggle="modal" data-bs-target="#dataModal{{ u.id }}" title="Ver Datos Completos"><i class="bi bi-eye"></i></button>
+                                </div>
+                            </td>
+                        </form>
+                    </tr>
+
+                    <!-- Modal para ver ABSOLUTAMENTE TODOS los datos del usuario -->
+                    <div class="modal fade glass-modal" id="dataModal{{ u.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header border-0">
+                                    <h5 class="modal-title"><i class="bi bi-person-lines-fill text-info"></i> Datos de {{ u.nombre }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body border-0">
+                                    <ul class="list-group list-group-flush" style="border-radius: 10px; overflow: hidden;">
+                                        <li class="list-group-item bg-transparent text-white border-white-50"><strong class="text-info">Nombre Completo:</strong><br>{{ u.nombre }} {{ u.primer_apellido }} {{ u.segundo_apellido }}</li>
+                                        <li class="list-group-item bg-transparent text-white border-white-50"><strong class="text-info">Email:</strong><br>{{ u.email }}</li>
+                                        <li class="list-group-item bg-transparent text-white border-white-50">
+                                            <strong class="text-info">Rol Actual:</strong><br>
+                                            {{ u.rol }} 
+                                            {% if u.is_superuser %}<span class="badge bg-warning text-dark ms-2"><i class="bi bi-star-fill"></i> Superusuario</span>{% endif %}
+                                        </li>
+                                        <li class="list-group-item bg-transparent text-white border-white-50"><strong class="text-info">Fecha de Registro:</strong><br>{{ u.fecha_registro.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+                                        
+                                        {% if u.datos_adicionales %}
+                                            <li class="list-group-item bg-transparent text-white border-0 mt-3"><strong class="text-warning">Campos Dinámicos:</strong></li>
+                                            {% for key, val in u.datos_adicionales.items() %}
+                                                <li class="list-group-item bg-transparent text-white border-white-50 d-flex justify-content-between">
+                                                    <span class="text-white-50">{{ key.replace('_', ' ') }}:</span>
+                                                    <span>{{ val }}</span>
+                                                </li>
+                                            {% endfor %}
+                                        {% else %}
+                                            <li class="list-group-item bg-transparent text-white-50 border-0 mt-2">No ha agregado datos dinámicos adicionales.</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

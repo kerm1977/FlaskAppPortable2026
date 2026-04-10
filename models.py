@@ -20,6 +20,12 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     rec_pin = db.Column(db.String(6), nullable=False) # Pin de seguridad de 6 dígitos
     
+    # SOLUCIÓN SQLITE: Al quitar nullable=False, SQLite permitirá añadir la columna a los 200 usuarios sin fallar
+    is_superuser = db.Column(db.Boolean, default=False)
+    
+    # NUEVO: Rol oficial del usuario para el panel de administración
+    rol = db.Column(db.String(50), default='Usuario', server_default='Usuario')
+    
     # Campos dinámicos guardados como JSON para mayor flexibilidad
     datos_adicionales = db.Column(db.JSON, default={})
     

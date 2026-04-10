@@ -91,3 +91,13 @@ img
 uploads 
 json (Va a contener todo lo que se importe o exporte a json)
 
+
+
+
+flask db init
+2. **Detecta la nueva columna `is_superuser`**:
+```bash
+flask db migrate -m "Agregada columna is_superuser para administradores"
+3. **Aplica el cambio a tu base de datos de 200 usuarios de forma segura**:
+```bash
+flask db upgrade
