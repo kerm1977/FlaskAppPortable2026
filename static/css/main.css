@@ -1,0 +1,119 @@
+/* static/css/main.css */
+
+@import url('bootstrap.css');
+@import url('bootstrap-icons.css');
+@import url('poppins.css');
+@import url('cropper.min.css');
+
+
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed;
+    color: #fff;
+    min-height: 100vh;
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: none !important; /* Sombra eliminada */
+}
+
+.glass-input {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: #fff !important;
+    border-radius: 10px;
+    box-shadow: none !important; /* Evita sombras por defecto de Bootstrap */
+}
+
+.glass-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.glass-input:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    box-shadow: none !important; /* Sombra de enfoque eliminada */
+}
+
+/* Solución para el texto blanco en fondo blanco de los select (campos dinámicos) */
+.glass-input option {
+    background-color: #667eea; /* Color de fondo oscuro que combina con el gradiente */
+    color: #ffffff;
+}
+
+.glass-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    box-shadow: none !important; /* Evita sombras por defecto de Bootstrap */
+}
+
+.glass-btn:hover, .glass-btn:focus, .glass-btn:active {
+    background: rgba(255, 255, 255, 0.3);
+    color: #fff;
+    box-shadow: none !important; /* Evita sombras al interactuar */
+}
+
+/* Navbar */
+.glass-navbar {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: none !important;
+}
+
+/* Mobile Bottom Bar (visible 200px to 500px) */
+.mobile-bottom-bar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    justify-content: space-around;
+    padding: 10px 0;
+    z-index: 1050;
+    box-shadow: none !important;
+}
+
+@media (min-width: 200px) and (max-width: 500px) {
+    .mobile-bottom-bar {
+        display: flex !important;
+    }
+    body { padding-bottom: 70px; }
+}
+
+.mobile-icon {
+    color: #fff;
+    font-size: 1.5rem;
+    text-decoration: none;
+}
+
+/* Bootstrap Cards */
+.card {
+    box-shadow: none !important; /* Sombras eliminadas de los cards */
+    background: rgba(255, 255, 255, 0.1); /* Añadido efecto glass opcional para que combinen */
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Modals */
+.glass-modal .modal-content {
+    background: rgba(20, 20, 30, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 15px;
+    box-shadow: none !important; /* Sombra del modal eliminada */
+}

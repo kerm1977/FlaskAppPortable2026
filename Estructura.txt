@@ -1,0 +1,93 @@
+Aplicación de Flask
+
+Crear una aplicación de flask y 100% Bootstrap inclusive los iconos y Glassmorphic y 100% portable con el archivo requirements.txt  y el entorno virtual.
+Absolutamente todos los modales de confirmación y eliminación serán consecuentes con el tema glassmorphic y siempre preguntará 3 veces antes de eliminar
+Vamos a utilizar Flask sqlalchemy, Las horas y fechas son de costa rica
+
+
+Generame un requirements.txt con todas las extensiones de Flask para instalar
+Flask Login,
+Bycript, 
+Flaskwtf, 
+flaskmail, 
+pandas, 
+htmlapdf, 
+pdfkit, 
+flaskmigrate, 
+flaskcachins, 
+flasksession, 
+flaskadmin
+flask
+
+
+
+IMPORTANTE. CADA ARCHIVO GENERADO VA A CONTENER EL NOMBRE LITERAL COMENTADO ARRIBA DEL DOCUMENTO.. por ejemplo app.py
+
+vamos a utilizar Blueprints.
+app.py se encarga únicamente de ser la puerta de entrada de la aplicación y crear la base de datos automáticamente en caso de no existir
+user.py se encargará de administrar el crud de usuarios
+db.py se encargará de administrar absolutamente todas las configuraciones de la base de datos SQLite, Mysql, Pocketbase y indexedDB y la inteligia para saber cual utilizar
+models.py se encargará de correr los modelos de nuestra app
+routes.py se encargará de administrar las rutas de la app
+
+
+las vistas .html van a estar en la carpeta Templates
+base.html (Sera el padre de los demás archivo y coantendrá los estilos y los js de toda la app)
+
+home.html Será la vista de bienvenida
+
+login.html Genera un login.html, Este permite ingresar el correo y el password(este campo tiene el ojo para ver la contraseña, el botón de olvido Contraseña que va a 
+reset_pass.html, No tengo una cuenta (va a registro.html))
+
+si un usuario toca olvidé contraseña se abre reset_pass.html que solicitará ingresar la llave de recuperación o el pin de seguridad y el Teléfono y si coincide se abre new_pass.html que va a solicitar la nueva contraseña y la vericicación. Luego va a generar una nueva llave y la misma leyenda  NUNCA compartas esta llave de recuperación poque puede acceder a tu perfil.
+
+regisro.html Se registra con los siguientes campos: 
+id
+Imagen del flyer con un editor que me permita editar la imagen (aumentar, disminuir, mover a x,y. )
+Nombre 
+Primer Apellido
+Segundo Apellido
+(La validación será siempre la primer letra de cada palabra en Mayuscula, No aceptará caracteres especiales ni números, y solo 1 espacio entre el Primer Nombre y segundo, por ejempos: Juan Carlos)
+Email
+contraseña (ojo para ver la contraseña)
+verificar Contraseña (ojo para ver la contraseña)
+pin de recuperación de 6 dígitos
+un selector de que permite ir agregando campos (Teléfono, Whatsapp, Usuario, Teléfono de Emergencia, Contacto de Emergencia, Tipo de Sangre, Fecha de Nacimiento, Empresa, Nombre del Grupo, Otros, País, Provincia(Provincias de Costa Rica))
+Si Tipo de Sangre mostrar absolutamente todo los valores sanguineos inclusive RH+ y RH- 
+si Fecha de Nacimiento mostrar un input para el día, otro para el mes y otro para el Año llegando hasta 16 años retornando desde el año actual
+
+Fecha de registro
+
+
+Al registrarse un usuario, se genera una llave en json encriptada que contiene el pin de seguridad y la clave encriptada y envia un mensaje que dice Debes guardar esta llave en tu correo. NUNCA compartas esta llave de recuperación poque puede acceder a tu perfil.
+
+
+perfil.html (Permite ver absolutamente toda la información ingresada por el usuario, editar absolutamente toda la información del usuario, generar una nueva llave para ingresar  el nuevo pin, y nueva contraseña y al guardarla se genera la llave json totalmente encriptada) además permite generar un carnet con toda la información en formato png o jpg en aspecto 9:16 
+
+reset_pass.html Abre con un input tipo file estilizado para ingrear la llave de acceso  si es correcta abre new_pass.html
+
+new_pass.html abre un nuevo formulario donde dice Nueva Contraseña y Verificar Contraseña (con ojo para ver lo que se digita)
+
+Ajustes va a ser administrado también con flaskadmin
+
+Home va a tener un saludo arriba de la persona logueada y a la par el boton de cerrar sesión 
+
+IMPORTANTE:
+En vista mobil 500px hasta 200px se va a genera una barra con iconos personalizables desde el  perfil de cada persona  hasta 5 accesos maximo
+
+
+
+los estilos van a estar dentro de la carpeta static
+css (Bootstrap.css y main.css que contrendrá la estructura 
+@import url('bootstrap.css'); 
+@import url('bootstrap-icons.css');
+@import url(''); y otros estilos esto para mantener base.html limpio
+/*FUENTES*/
+/*@import url('../webfonts/css/all.min.css');*/
+
+)
+js (Absolutamente todos los archivos js)
+img
+uploads 
+json (Va a contener todo lo que se importe o exporte a json)
+

@@ -1,0 +1,17 @@
+# requirements.txt
+setuptools>=65.5.1
+wheel>=0.38.4
+Flask==3.0.2
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+bcrypt>=4.0.0
+Flask-WTF==1.2.1
+Flask-Mail==0.9.1
+pandas>=2.0.3  # Flexibilizado para descargar binarios precompilados y evitar errores de build
+pdfkit==1.0.0
+Flask-Migrate==4.0.5
+Flask-Caching==2.1.0
+Flask-Session==0.8.0
+Flask-Admin==1.6.1
+pytz==2024.1
+cryptography>=41.0.0

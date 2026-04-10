@@ -1,0 +1,103 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Flask Glassmorphic</title>
+    <!-- Los estilos CSS ya los habías conectado bien desde tu main.css -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark glass-navbar mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">GlassApp</a>
+            {% if current_user.is_authenticated %}
+            <div class="d-flex text-white align-items-center">
+                <span class="me-3">¡Hola, {{ current_user.nombre }}!</span>
+                <a href="{{ url_for('user.logout') }}" class="btn btn-sm glass-btn">Cerrar Sesión</a>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} glass-panel py-2 mb-3">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Barra Inferior Móvil -->
+    {% if current_user.is_authenticated %}
+    <div class="mobile-bottom-bar">
+        <a href="{{ url_for('routes.home') }}" class="mobile-icon"><i class="bi bi-house"></i></a>
+        <a href="{{ url_for('user.perfil') }}" class="mobile-icon"><i class="bi bi-person"></i></a>
+        <a href="#" class="mobile-icon"><i class="bi bi-gear"></i></a>
+        <a href="#" class="mobile-icon"><i class="bi bi-bell"></i></a>
+        <a href="{{ url_for('user.logout') }}" class="mobile-icon"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+    {% endif %}
+
+    <!-- Modal de Eliminación Seguro (3 Pasos) -->
+    <div class="modal fade glass-modal" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-warning"></i> Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body border-0" id="deleteModalBody">
+                    ¿Estás seguro que deseas eliminar esto? (Paso 1 de 3)
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn glass-btn" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" id="deleteModalBtn" onclick="processDeleteStep()">Continuar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS JS LOCALES ENLAZADOS CON URL_FOR (Esto repara los botones del Cropper) -->
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cropper.js') }}"></script>
+
+    <script>
+        // Lógica de Eliminación de 3 pasos global
+        let deleteUrl = '';
+        let deleteStep = 1;
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+        function confirmDelete(url) {
+            deleteUrl = url;
+            deleteStep = 1;
+            document.getElementById('deleteModalBody').innerText = '¿Estás seguro que deseas eliminar esto? (Paso 1 de 3)';
+            document.getElementById('deleteModalBtn').className = 'btn btn-warning';
+            document.getElementById('deleteModalBtn').innerText = 'Continuar';
+            deleteModal.show();
+        }
+
+        function processDeleteStep() {
+            deleteStep++;
+            const body = document.getElementById('deleteModalBody');
+            const btn = document.getElementById('deleteModalBtn');
+
+            if (deleteStep === 2) {
+                body.innerText = 'Esta acción es irreversible y no podrá deshacerse. ¿Confirmas? (Paso 2 de 3)';
+            } else if (deleteStep === 3) {
+                body.innerText = 'Última advertencia. ¿Realmente deseas eliminarlo permanentemente? (Paso 3 de 3)';
+                btn.className = 'btn btn-danger';
+                btn.innerText = 'Eliminar Definitivamente';
+            } else if (deleteStep > 3) {
+                window.location.href = deleteUrl;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!-- templates/registro.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 glass-panel mb-5">
+        <h2 class="text-center mb-4"><i class="bi bi-person-plus"></i> Registro de Usuario</h2>
+        <form method="POST" enctype="multipart/form-data">
+            
+            <!-- SECCIÓN: IMAGEN Y EDITOR -->
+            <div class="mb-4">
+                <label>Imagen de Perfil / Flyer</label>
+                <input type="file" id="flyer-input" class="form-control glass-input mb-2" accept="image/*" required>
+                
+                <!-- Contenedor del Editor de Imagen (Oculto por defecto) -->
+                <div id="editor-container" style="display: none; width: 100%; height: 400px; margin-bottom: 15px; border-radius: 10px; overflow: hidden; background-color: rgba(0, 0, 0, 0.2);">
+                    <img id="image-to-crop" style="display: block; max-width: 100%; max-height: 100%; object-fit: contain;">
+                </div>
+                
+                <!-- Controles del Editor -->
+                <div id="editor-controls" style="display: none;" class="mb-3 d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn glass-btn" onclick="cropper.zoom(0.1)" title="Aumentar"><i class="bi bi-zoom-in"></i></button>
+                    <button type="button" class="btn glass-btn" onclick="cropper.zoom(-0.1)" title="Disminuir"><i class="bi bi-zoom-out"></i></button>
+                    <button type="button" class="btn glass-btn" onclick="cropper.setDragMode('move')" title="Mover (X, Y)"><i class="bi bi-arrows-move"></i></button>
+                    <button type="button" class="btn btn-success glass-btn" onclick="saveCrop()">
+                        <i class="bi bi-check2-circle"></i> Aplicar y Comprimir
+                    </button>
+                </div>
+
+                <!-- Contenedor de la Vista Previa (Después de comprimir) -->
+                <div id="preview-container" style="display: none;" class="text-center mb-3">
+                    <img id="image-preview" style="max-width: 150px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.3);">
+                    <!-- Este input oculto es el que envía la imagen comprimida (base64) a user.py -->
+                    <input type="hidden" name="imagen_flyer" id="imagen_flyer_hidden">
+                    <p class="small mt-2 mb-0" style="color: #4ade80;" id="compression-msg"></p>
+                </div>
+            </div>
+            
+            <!-- SECCIÓN: DATOS PERSONALES -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label>Nombre</label>
+                    <input type="text" name="nombre" class="form-control glass-input name-validation" required>
+                </div>
+                <div class="col-md-4">
+                    <label>Primer Apellido</label>
+                    <input type="text" name="primer_apellido" class="form-control glass-input name-validation" required>
+                </div>
+                <div class="col-md-4">
+                    <label>Segundo Apellido</label>
+                    <input type="text" name="segundo_apellido" class="form-control glass-input name-validation" required>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Correo Electrónico</label>
+                    <input type="email" name="email" class="form-control glass-input" required>
+                </div>
+                <div class="col-md-6">
+                    <label>PIN de Recuperación (6 dígitos)</label>
+                    <input type="text" name="rec_pin" class="form-control glass-input" pattern="\d{6}" maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Contraseña</label>
+                    <div class="input-group">
+                        <input type="password" id="reg-password" name="password" class="form-control glass-input" required>
+                        <button class="btn glass-btn" type="button" onclick="togglePassword('reg-password', 'eye-reg1')">
+                            <i class="bi bi-eye" id="eye-reg1"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label>Verificar Contraseña</label>
+                    <div class="input-group">
+                        <input type="password" id="reg-password-verify" class="form-control glass-input" required>
+                        <button class="btn glass-btn" type="button" onclick="togglePassword('reg-password-verify', 'eye-reg2')">
+                            <i class="bi bi-eye" id="eye-reg2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="bg-white my-4">
+            
+            <h5 class="mb-3">Campos Dinámicos <i class="bi bi-plus-circle"></i></h5>
+            <div class="input-group mb-3">
+                <select id="field-selector" class="form-select glass-input">
+                    <option value="" selected disabled>Seleccionar campo a agregar...</option>
+                    <option value="Telefono">Teléfono</option>
+                    <option value="Whatsapp">WhatsApp</option>
+                    <option value="Emergencia">Teléfono de Emergencia</option>
+                    <option value="Contacto_Emergencia">Contacto de Emergencia</option>
+                    <option value="Sangre">Tipo de Sangre</option>
+                    <option value="Nacimiento">Fecha de Nacimiento</option>
+                    <option value="Provincia">Provincia (CR)</option>
+                    <option value="Pais">País</option>
+                    <option value="Empresa">Empresa</option>
+                    <option value="Nombre_Grupo">Nombre del Grupo</option>
+                    <option value="Usuario">Usuario</option>
+                    <option value="Otros">Otros</option>
+                </select>
+                <button type="button" class="btn glass-btn" onclick="addDynamicField()">Agregar Campo</button>
+            </div>
+
+            <div id="dynamic-fields-container"></div>
+
+            <button type="submit" class="btn glass-btn w-100 mt-4 py-2" id="submit-btn">Registrarse y Generar Llave de Seguridad</button>
+            <div class="text-center mt-3">
+                <a href="{{ url_for('user.login') }}" class="text-white text-decoration-none">Ya tengo una cuenta. Iniciar sesión.</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// 1. VALIDACIÓN DE NOMBRES
+// ==========================================
+document.querySelectorAll('.name-validation').forEach(input => {
+    input.addEventListener('input', function(e) {
+        let val = this.value;
+        val = val.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ''); // Remover números/símbolos
+        val = val.replace(/\s{2,}/g, ' '); // Máximo 1 espacio consecutivo
+        this.value = val.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+    });
+});
+
+// ==========================================
+// 2. MOSTRAR/OCULTAR CONTRASEÑA
+// ==========================================
+function togglePassword(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (input.type === 'password') {
+        input.type = 'text'; icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = 'password'; icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+
+// ==========================================
+// 3. EDITOR DE IMÁGENES Y COMPRESIÓN (< 1MB)
+// ==========================================
+let cropper;
+
+document.getElementById('flyer-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const imgElement = document.getElementById('image-to-crop');
+        
+        // Hacer visible el contenedor ANTES de inicializar Cropper
+        // Esto le permite a la librería calcular correctamente el ancho y el alto disponible
+        document.getElementById('editor-container').style.display = 'block';
+        document.getElementById('editor-controls').style.display = 'flex';
+        document.getElementById('preview-container').style.display = 'none';
+        document.getElementById('submit-btn').disabled = true; // Desactivar hasta que aplique la imagen
+        
+        // Esperar a que la imagen se decodifique y se posicione en el DOM
+        imgElement.onload = function() {
+            if (cropper) cropper.destroy();
+            
+            cropper = new Cropper(imgElement, {
+                viewMode: 1,
+                dragMode: 'move', // Permite mover con click sostenido
+                autoCropArea: 0.8,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: false,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+            });
+        };
+        
+        // Asignar la imagen cargada (esto dispara el evento onload anterior)
+        imgElement.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+function saveCrop() {
+    if (!cropper) return;
+    
+    // Al pedir un width/height razonable y usar JPEG a 0.7, garantizamos < 1MB 
+    const canvas = cropper.getCroppedCanvas({ width: 800, height: 800 });
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
+    
+    // Validar el tamaño para informar al usuario (Base64 size calculation)
+    const sizeInBytes = Math.round((dataUrl.length * 3) / 4);
+    const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+    
+    if (sizeInMB > 1.0) {
+        alert("La imagen sigue siendo mayor a 1MB. Por favor, selecciona otra imagen.");
+        return;
+    }
+
+    // Mostrar el preview y guardar la data en el input oculto
+    document.getElementById('image-preview').src = dataUrl;
+    document.getElementById('imagen_flyer_hidden').value = dataUrl;
+    
+    document.getElementById('editor-container').style.display = 'none';
+    document.getElementById('editor-controls').style.display = 'none';
+    document.getElementById('preview-container').style.display = 'block';
+    
+    document.getElementById('compression-msg').innerHTML = `<i class="bi bi-check-circle-fill"></i> Imagen lista (${sizeInMB} MB)`;
+    document.getElementById('submit-btn').disabled = false; // Reactivar envío
+}
+
+// ==========================================
+// 4. CAMPOS DINÁMICOS Y VALIDACIÓN DE TELÉFONOS
+// ==========================================
+function addDynamicField() {
+    const container = document.getElementById('dynamic-fields-container');
+    const type = document.getElementById('field-selector').value;
+    if(!type) return;
+
+    const div = document.createElement('div');
+    div.className = 'mb-3 input-group';
+    
+    let innerHTML = `<span class="input-group-text glass-panel py-0 border-end-0">${type.replace('_', ' ')}</span>`;
+    
+    if(type === 'Sangre') {
+        innerHTML += `
+            <select name="dynamic_Sangre" class="form-select glass-input">
+                <option value="O+">O Positivo (O+)</option><option value="O-">O Negativo (O-)</option>
+                <option value="A+">A Positivo (A+)</option><option value="A-">A Negativo (A-)</option>
+                <option value="B+">B Positivo (B+)</option><option value="B-">B Negativo (B-)</option>
+                <option value="AB+">AB Positivo (AB+)</option><option value="AB-">AB Negativo (AB-)</option>
+            </select>`;
+    } else if (type === 'Provincia') {
+        innerHTML += `
+            <select name="dynamic_Provincia" class="form-select glass-input">
+                <option value="San José">San José</option><option value="Alajuela">Alajuela</option>
+                <option value="Cartago">Cartago</option><option value="Heredia">Heredia</option>
+                <option value="Guanacaste">Guanacaste</option><option value="Puntarenas">Puntarenas</option>
+                <option value="Limón">Limón</option>
+            </select>`;
+    } else if (type === 'Nacimiento') {
+        let currentYear = new Date().getFullYear();
+        innerHTML += `
+            <input type="number" placeholder="Día" min="1" max="31" name="dynamic_DiaNac" class="form-control glass-input" required>
+            <input type="number" placeholder="Mes" min="1" max="12" name="dynamic_MesNac" class="form-control glass-input" required>
+            <input type="number" placeholder="Año" max="${currentYear - 16}" name="dynamic_AnoNac" class="form-control glass-input" required>`;
+    } 
+    // ESTRICTA VALIDACIÓN PARA TELÉFONOS (Solo números, máximo y mínimo 8 dígitos)
+    else if (['Telefono', 'Whatsapp', 'Emergencia'].includes(type)) {
+        innerHTML += `
+            <input type="text" 
+                   name="dynamic_${type}" 
+                   class="form-control glass-input" 
+                   placeholder="Solo 8 números" 
+                   pattern="\\d{8}" 
+                   maxlength="8" 
+                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8);" 
+                   required>`;
+    } else {
+        innerHTML += `<input type="text" name="dynamic_${type}" class="form-control glass-input" required>`;
+    }
+
+    innerHTML += `<button type="button" class="btn btn-danger glass-btn" onclick="this.parentElement.remove()">X</button>`;
+    div.innerHTML = innerHTML;
+    container.appendChild(div);
+}
+</script>
+{% endblock %}

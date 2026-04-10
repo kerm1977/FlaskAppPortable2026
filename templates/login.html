@@ -1,0 +1,61 @@
+<!-- templates/login.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-5">
+        <div class="glass-panel">
+            <h2 class="text-center mb-4"><i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión</h2>
+            <form method="POST">
+                <div class="mb-3">
+                    <label>Correo Electrónico</label>
+                    <input type="email" name="email" class="form-control glass-input" required>
+                </div>
+                <div class="mb-4 position-relative">
+                    <label>Contraseña</label>
+                    <div class="input-group">
+                        <input type="password" id="login-password" name="password" class="form-control glass-input" required>
+                        <button class="btn glass-btn" type="button" onclick="togglePassword('login-password', 'eye-icon')">
+                            <i class="bi bi-eye" id="eye-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn glass-btn w-100 mb-3">Ingresar</button>
+            </form>
+            <div class="text-center mt-3">
+                <a href="{{ url_for('user.reset_pass') }}" class="text-white text-decoration-none d-block mb-2"><i class="bi bi-key"></i> Olvidé mi Contraseña</a>
+                <a href="{{ url_for('user.registro') }}" class="text-white text-decoration-none">No tengo una cuenta. Registrarse.</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lógica de Descarga Automática de la Llave -->
+{% if session.pop('trigger_download', False) %}
+<script>
+    window.onload = function() {
+        // Genera un elemento invisible para iniciar la descarga del archivo físico
+        const downloadUrl = "{{ url_for('user.download_key') }}";
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+</script>
+{% endif %}
+
+<script>
+function togglePassword(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+</script>
+{% endblock %}

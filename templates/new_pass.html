@@ -1,0 +1,58 @@
+<!-- templates/new_pass.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-5">
+        <div class="glass-panel">
+            <h2 class="text-center mb-4"><i class="bi bi-shield-lock"></i> Nueva Contraseña</h2>
+            
+            <div class="alert alert-warning glass-panel py-2 mb-4 text-center" style="font-size: 0.9rem;">
+                <i class="bi bi-exclamation-triangle"></i> Al guardar, se generará una <strong>NUEVA</strong> llave de recuperación. La anterior dejará de funcionar.
+            </div>
+
+            <form method="POST">
+                <div class="mb-3 position-relative">
+                    <label>Nueva Contraseña</label>
+                    <div class="input-group">
+                        <input type="password" id="new-password" name="password" class="form-control glass-input" required minlength="6">
+                        <button class="btn glass-btn" type="button" onclick="togglePassword('new-password', 'eye-new1')">
+                            <i class="bi bi-eye" id="eye-new1"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4 position-relative">
+                    <label>Verificar Contraseña</label>
+                    <div class="input-group">
+                        <input type="password" id="verify-password" name="verify_password" class="form-control glass-input" required minlength="6">
+                        <button class="btn glass-btn" type="button" onclick="togglePassword('verify-password', 'eye-new2')">
+                            <i class="bi bi-eye" id="eye-new2"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn glass-btn w-100 mb-3">Guardar y Generar Nueva Llave</button>
+            </form>
+            
+            <div class="text-center mt-3">
+                <a href="{{ url_for('user.login') }}" class="text-white text-decoration-none">Cancelar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+</script>
+{% endblock %}

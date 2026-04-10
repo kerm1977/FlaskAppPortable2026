@@ -1,0 +1,18 @@
+<!-- templates/home.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 text-center glass-panel">
+        <h1 class="display-4"><i class="bi bi-stars text-warning"></i> Bienvenid@, {{ user.nombre }}</h1>
+        <p class="lead mt-3">Has ingresado exitosamente a tu aplicación Glassmorphic portátil.</p>
+        <hr class="bg-white my-4">
+        
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('user.perfil') }}" class="btn glass-btn px-4 py-2"><i class="bi bi-person-circle"></i> Ir a mi Perfil</a>
+            <!-- Ejemplo de botón de eliminar con 3 confirmaciones -->
+            <button class="btn btn-outline-danger px-4 py-2 glass-btn" style="color: #ff6b6b; border-color: #ff6b6b;" onclick="confirmDelete('#')"><i class="bi bi-trash"></i> Eliminar Cuenta</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
