@@ -47,6 +47,7 @@ def registro():
                 datos_adicionales[key.replace('dynamic_', '')] = value
                 
         nuevo_usuario = User(
+            imagen_flyer=request.form.get('imagen_flyer'), # <-- SE AGREGÓ PARA GUARDAR LA FOTO EN EL REGISTRO
             nombre=request.form.get('nombre'),
             primer_apellido=request.form.get('primer_apellido'),
             segundo_apellido=request.form.get('segundo_apellido'),
@@ -175,11 +176,32 @@ def download_key():
 @login_required
 def perfil():
     if request.method == 'POST':
+        # 1. Guardar la imagen (si no se envía nueva, se deja la que ya estaba)
+        nueva_imagen = request.form.get('imagen_flyer')
+        if nueva_imagen:
+            current_user.imagen_flyer = nueva_imagen
+            
+        # 2. Guardar datos principales
         current_user.nombre = request.form.get('nombre')
         current_user.primer_apellido = request.form.get('primer_apellido')
         current_user.segundo_apellido = request.form.get('segundo_apellido')
+        
+        # 3. Guardar campos dinámicos
+        nuevos_datos = {}
+        for key, value in request.form.items():
+            if key.startswith('dynamic_'):
+                nuevos_datos[key.replace('dynamic_', '')] = value
+                
+        # Solo actualizamos si realmente se enviaron campos dinámicos en el formulario
+        if nuevos_datos or any(k.startswith('dynamic_') for k in request.form.keys()):
+             current_user.datos_adicionales = nuevos_datos
+        
         db.session.commit()
         flash('Perfil actualizado con éxito', 'success')
+        
+        # 4. SOLUCIÓN AL MENSAJE DE FIREFOX: Hacer una redirección limpia (PRG pattern)
+        return redirect(url_for('user.perfil'))
+        
     return render_template('perfil.html', user=current_user)
 
 @user_bp.route('/logout')
