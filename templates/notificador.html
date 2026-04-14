@@ -2,27 +2,67 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    /* Estilos para la paginación glassmorphic */
+    .pagination-glass .page-link {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        backdrop-filter: blur(10px);
+        margin: 0 3px;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+    .pagination-glass .page-link:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: #fff;
+    }
+    .pagination-glass .page-item.active .page-link {
+        background: #4ade80;
+        border-color: #4ade80;
+        color: #1a1a1a;
+        font-weight: bold;
+    }
+    .pagination-glass .page-item.disabled .page-link {
+        color: rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+</style>
+
 <div class="row justify-content-center mb-5">
-    <div class="col-md-8">
+    <div class="col-md-10">
         
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
             <h2 class="mb-0 text-warning"><i class="bi bi-bell-fill"></i> Notificaciones</h2>
-            <div>
-                <!-- Botón para limpiar todo el historial -->
+            
+            <div class="d-flex gap-2 flex-wrap">
+                <!-- Formulario Oculto para Importar JSON -->
+                <form action="{{ url_for('notif.importar_notificaciones') }}" method="POST" enctype="multipart/form-data" class="d-none" id="import-form">
+                    <input type="file" id="import-json" name="json_file" accept=".json" onchange="document.getElementById('import-form').submit();">
+                </form>
+
+                <!-- Botones de Acción Global -->
+                <button type="button" class="btn btn-sm btn-outline-info glass-btn" onclick="document.getElementById('import-json').click();">
+                    <i class="bi bi-upload"></i> Importar JSON
+                </button>
+                <a href="{{ url_for('notif.exportar_notificaciones') }}" class="btn btn-sm btn-outline-success glass-btn">
+                    <i class="bi bi-download"></i> Exportar JSON
+                </a>
                 <form action="{{ url_for('notif.limpiar_notificaciones') }}" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-sm btn-outline-danger glass-btn"><i class="bi bi-trash"></i> Limpiar Todas</button>
+                    <button type="submit" class="btn btn-sm btn-outline-danger glass-btn"><i class="bi bi-trash-fill"></i> Limpiar Todas</button>
                 </form>
             </div>
         </div>
 
         <div class="glass-panel p-0 overflow-hidden">
-            {% if notificaciones %}
+            {% if notificaciones.items %}
                 <ul class="list-group list-group-flush">
-                {% for n in notificaciones %}
+                {% for n in notificaciones.items %}
                     <!-- Las notificaciones NO LEÍDAS tendrán un leve fondo oscuro diferente para resaltar -->
-                    <li class="list-group-item bg-transparent text-white border-bottom border-secondary p-4 {% if not n.leida %}bg-dark bg-opacity-25{% endif %}">
-                        <div class="d-flex align-items-start">
-                            <div class="me-3 mt-1">
+                    <li class="list-group-item bg-transparent text-white border-bottom border-secondary p-3 {% if not n.leida %}bg-dark bg-opacity-25{% endif %}">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
                                 <!-- Coloreado de Iconos de Alerta -->
                                 {% if n.tipo == 'success' %}
                                     <i class="bi bi-check-circle-fill fs-4 text-success"></i>
@@ -35,15 +75,50 @@
                                 {% endif %}
                             </div>
                             <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between w-100 align-items-start flex-wrap">
-                                    <h6 class="mb-1 text-white pe-2 lh-base">{{ n.mensaje }}</h6>
-                                    <small class="text-white-50 text-nowrap mt-1"><i class="bi bi-clock"></i> {{ n.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+                                <div class="d-flex justify-content-between w-100 align-items-center flex-wrap">
+                                    <h6 class="mb-1 text-white pe-2 lh-base m-0">{{ n.mensaje }}</h6>
+                                    <div class="d-flex align-items-center gap-3 mt-1 mt-sm-0">
+                                        <small class="text-white-50 text-nowrap"><i class="bi bi-clock"></i> {{ n.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+                                        
+                                        <!-- Botón para eliminar notificación individual llamando al modal de 3 pasos -->
+                                        <button type="button" class="btn btn-sm btn-danger glass-btn py-0 px-2" title="Eliminar alerta" onclick="confirmDelete('{{ url_for('notif.eliminar_notificacion', id=n.id) }}')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </li>
                 {% endfor %}
                 </ul>
+                
+                <!-- PAGINACIÓN -->
+                {% if notificaciones.pages > 1 %}
+                <div class="p-3 border-top border-secondary">
+                    <nav aria-label="Navegación de notificaciones">
+                        <ul class="pagination pagination-glass justify-content-center mb-0">
+                            <li class="page-item {% if not notificaciones.has_prev %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('notif.notificaciones', page=notificaciones.prev_num) if notificaciones.has_prev else '#' }}">Anterior</a>
+                            </li>
+                            
+                            {% for p in notificaciones.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                {% if p %}
+                                    <li class="page-item {% if p == notificaciones.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('notif.notificaciones', page=p) }}">{{ p }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <li class="page-item {% if not notificaciones.has_next %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('notif.notificaciones', page=notificaciones.next_num) if notificaciones.has_next else '#' }}">Siguiente</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+
             {% else %}
                 <div class="p-5 text-center text-white-50">
                     <i class="bi bi-bell-slash fs-1 mb-3 d-block text-white-50 opacity-50"></i>

@@ -200,7 +200,7 @@
                 <a href="{{ url_for('user.perfil') }}" class="text-white text-decoration-none me-2 me-sm-3 profile-link-nav" title="Ir a mi perfil">
                     {{ current_user.nombre }}
                 </a>
-                
+
                 <!-- CAMPANITA NOTIFICACIONES SUPERADMIN (Desktop) -->
                 {% if current_user.is_superuser %}
                 <a href="{{ url_for('notif.notificaciones') }}" class="text-white text-decoration-none me-3 position-relative profile-link-nav" title="Notificaciones del Sistema">
@@ -282,23 +282,44 @@
         {% endif %}
     </div>
 
-    <!-- LOGICA DE PERSISTENCIA LOCAL (Solo para previsualización inmediata) -->
+    <!-- Modal de Eliminación Global (3 Pasos) -->
+    <div class="modal fade glass-modal" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-warning"></i> Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body border-0" id="deleteModalBody">
+                    ¿Estás seguro que deseas eliminar esto? (Paso 1 de 3)
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn glass-btn" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" id="deleteModalBtn" onclick="processDeleteStep()">Continuar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let deleteUrl = '';
+        let deleteStep = 1;
+        let deleteModal = null;
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Inicialización del modal de Bootstrap
+            const deleteModalEl = document.getElementById('deleteModal');
+            if(deleteModalEl) deleteModal = new bootstrap.Modal(deleteModalEl);
+
+            // Lógica de Persistencia del Nombre del Sitio
             const siteNameInput = document.getElementById('site-name-input');
             const brandEl = document.getElementById('global-brand-name');
             
-            // Si el input existe (es decir, estamos en la pantalla de ajustes)
             if (siteNameInput) {
-                // Prioridad a la variable global de Jinja si existe
                 const backendName = "{{ global_site_name | default('') | safe }}";
                 const savedName = backendName ? backendName : localStorage.getItem('glass-site-name');
-                
-                if (savedName) {
-                    siteNameInput.value = savedName;
-                }
+                if (savedName) siteNameInput.value = savedName;
 
-                // Escuchar cada tecla presionada para previsualizar antes de guardar
                 siteNameInput.addEventListener('input', function() {
                     const newName = this.value.trim() || 'GlassApp Portable';
                     document.title = newName;
@@ -307,6 +328,33 @@
                 });
             }
         });
+
+        // Funciones del Modal de Eliminación
+        function confirmDelete(url) {
+            deleteUrl = url;
+            deleteStep = 1;
+            document.getElementById('deleteModalBody').innerText = '¿Estás seguro que deseas eliminar esto? (Paso 1 de 3)';
+            const btn = document.getElementById('deleteModalBtn');
+            btn.className = 'btn btn-warning';
+            btn.innerText = 'Continuar';
+            if(deleteModal) deleteModal.show();
+        }
+
+        function processDeleteStep() {
+            deleteStep++;
+            const body = document.getElementById('deleteModalBody');
+            const btn = document.getElementById('deleteModalBtn');
+
+            if (deleteStep === 2) {
+                body.innerText = 'Esta acción es irreversible y no podrá deshacerse. ¿Confirmas? (Paso 2 de 3)';
+            } else if (deleteStep === 3) {
+                body.innerText = 'Última advertencia. ¿Realmente deseas eliminarlo permanentemente? (Paso 3 de 3)';
+                btn.className = 'btn btn-danger';
+                btn.innerText = 'Eliminar Definitivamente';
+            } else if (deleteStep > 3) {
+                window.location.href = deleteUrl;
+            }
+        }
     </script>
 </body>
 </html>
