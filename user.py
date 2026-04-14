@@ -4,6 +4,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import db
 from models import User, AppConfig
+from notif import crear_notificacion # IMPORTACIÓN DEL MOTOR DE NOTIFICACIONES
 import json
 import io
 import os
@@ -61,6 +62,9 @@ def registro():
         )
         db.session.add(nuevo_usuario)
         db.session.commit()
+        
+        # ALERTA DE SISTEMA: Nuevo registro
+        crear_notificacion(f"Nuevo usuario registrado en el sistema: {email}", "success")
         
         # Generar JSON Encriptado
         payload = json.dumps({"email": email, "pin": pin, "hash": hashed_pw}).encode('utf-8')
@@ -145,6 +149,9 @@ def new_pass():
             
             session.pop('reset_email', None)
             
+            # ALERTA DE SISTEMA: Reseteo de clave exitoso
+            crear_notificacion(f"El usuario {email} ha restablecido su contraseña mediante llave de seguridad.", "info")
+            
             flash('Contraseña actualizada. Debes guardar esta llave en tu correo. NUNCA compartas esta llave de recuperación porque puede acceder a tu perfil.', 'warning')
             
             return redirect(url_for('user.login'))
@@ -207,6 +214,10 @@ def verify_credentials():
         bloqueo_segundos = 24 * 60 * 60 # 24 horas
 
     session['cred_lockout_until'] = ahora + bloqueo_segundos
+
+    # ALERTA DE SISTEMA: Muchos intentos fallidos (a partir del 3er intento)
+    if intentos >= 3:
+        crear_notificacion(f"ALERTA: Múltiples intentos fallidos de verificación de credenciales para la cuenta {current_user.email}. Bloqueo aplicado.", "danger")
 
     return jsonify({"success": False, "locked": True, "remaining_seconds": bloqueo_segundos})
 
@@ -299,6 +310,9 @@ def change_pass_profile():
         session['download_key'] = archivo_json
         session['trigger_download'] = True
 
+        # ALERTA DE SISTEMA
+        crear_notificacion(f"El usuario {current_user.email} ha cambiado su contraseña desde el perfil.", "info")
+
         flash('Tu contraseña ha sido actualizada. Se está descargando tu nueva llave de seguridad.', 'success')
     else:
         flash('No pudimos procesar tu cambio de contraseña.', 'danger')
@@ -322,6 +336,9 @@ def change_pin_profile():
         archivo_json = json.dumps({"llave_seguridad": encrypted_token}, indent=4)
         session['download_key'] = archivo_json
         session['trigger_download'] = True
+        
+        # ALERTA DE SISTEMA
+        crear_notificacion(f"El usuario {current_user.email} ha actualizado su PIN de recuperación.", "info")
         
         flash('Tu PIN ha sido actualizado y se ha generado una nueva llave de seguridad.', 'success')
     else:
@@ -350,6 +367,10 @@ def perfil():
              current_user.datos_adicionales = nuevos_datos
         
         db.session.commit()
+        
+        # ALERTA DE SISTEMA
+        crear_notificacion(f"El usuario {current_user.email} ha editado la información de su perfil.", "info")
+        
         flash('Perfil actualizado con éxito', 'success')
         return redirect(url_for('user.perfil'))
         
@@ -393,6 +414,9 @@ def update_user_role(user_id):
     user.is_superuser = request.form.get('is_superuser') == 'true'
     db.session.commit()
     
+    # ALERTA DE SISTEMA
+    crear_notificacion(f"Se actualizaron los permisos/roles del usuario {user.email} a {user.rol}.", "warning")
+    
     flash(f'Roles y permisos actualizados correctamente para {user.nombre} {user.primer_apellido}.', 'success')
     return redirect(url_for('user.admin_dashboard'))
 
@@ -425,6 +449,10 @@ def admin_edit_user(user_id):
              user_to_edit.datos_adicionales = nuevos_datos
              
         db.session.commit()
+        
+        # ALERTA DE SISTEMA
+        crear_notificacion(f"El superadmin editó forzosamente el perfil de {user_to_edit.email}.", "info")
+        
         flash(f'Perfil de {user_to_edit.nombre} actualizado por el administrador.', 'success')
         return redirect(url_for('user.admin_dashboard'))
 
@@ -456,8 +484,26 @@ def admin_reset_user(user_id):
     session['download_key'] = archivo_json
     session['trigger_download'] = True
     
+    # ALERTA DE SISTEMA CRÍTICA
+    crear_notificacion(f"ALERTA SECUESTRO: El administrador reseteó forzosamente las credenciales de {user_to_reset.email}.", "danger")
+    
     flash(f'Cuenta de {user_to_reset.email} rescatada con éxito. Se está descargando su nueva llave.', 'success')
     return redirect(url_for('user.admin_dashboard'))
+
+# --- RUTA PARA ELIMINAR CUENTA ---
+@user_bp.route('/delete_account', methods=['GET'])
+@login_required
+def delete_account():
+    email = current_user.email
+    db.session.delete(current_user)
+    db.session.commit()
+    
+    # ALERTA DE SISTEMA CRÍTICA
+    crear_notificacion(f"ALERTA BAJA: El usuario {email} acaba de eliminar su cuenta permanentemente del sistema.", "danger")
+    
+    logout_user()
+    flash('Tu cuenta ha sido eliminada permanentemente. Lamentamos verte partir.', 'success')
+    return redirect(url_for('user.login'))
 
 # --- RUTA DE AJUSTES DEL SITIO (AHORA CONECTADA A LA BD) ---
 @user_bp.route('/ajustes_sitio', methods=['GET', 'POST'])
@@ -492,6 +538,9 @@ def ajustes_sitio():
         config.enable_funnel = request.form.get('enable_tailscale_funnel') == 'on'
         
         db.session.commit()
+        
+        # ALERTA DE SISTEMA
+        crear_notificacion("El Superadministrador ha modificado los Ajustes Globales del Sistema / Tailscale.", "warning")
         
         flash('Ajustes globales guardados permanentemente en la Base de Datos.', 'success')
         return redirect(url_for('user.ajustes_sitio'))

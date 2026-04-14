@@ -6,7 +6,8 @@ from db import db, init_db
 from flask_login import LoginManager
 from user import user_bp
 from routes import routes_bp
-from models import User, AppConfig
+from notif import notif_bp  # IMPORTAMOS EL NUEVO BLUEPRINT
+from models import User, AppConfig, Notification  # IMPORTAMOS EL MODELO NOTIFICATION
 from werkzeug.security import generate_password_hash
 from flask_migrate import Migrate
 from sqlalchemy.exc import OperationalError
@@ -32,19 +33,27 @@ def load_user(user_id):
 # Registrar Blueprints
 app.register_blueprint(user_bp)
 app.register_blueprint(routes_bp)
+app.register_blueprint(notif_bp)  # REGISTRAMOS LAS RUTAS DE NOTIFICACIONES
 
 # ==================================================
 # INYECTOR DE VARIABLES GLOBALES (DESDE BASE DE DATOS)
 # ==================================================
 @app.context_processor
 def inject_global_settings():
+    from flask_login import current_user
+    unread_notifs = 0
     try:
+        # Calcular notificaciones no leídas solo si el usuario es Superadmin
+        if current_user.is_authenticated and current_user.is_superuser:
+            unread_notifs = Notification.query.filter_by(leida=False).count()
+            
         config = AppConfig.query.first()
         if config:
             return {
                 'global_site_name': config.site_name,
                 'global_support_email': config.support_email,
-                'global_theme': config.global_theme
+                'global_theme': config.global_theme,
+                'unread_notifs': unread_notifs
             }
     except Exception:
         # Pasa en silencio si la tabla aún no se ha creado
@@ -54,7 +63,8 @@ def inject_global_settings():
     return {
         'global_site_name': 'GlassApp Portable',
         'global_support_email': 'soporte@midominio.com',
-        'global_theme': ''
+        'global_theme': '',
+        'unread_notifs': unread_notifs
     }
 
 # ==================================================
@@ -95,6 +105,7 @@ def crear_superusuarios():
 def iniciar_tailscale(app_instance):
     """Lee la Base de Datos SQLite y lanza el Funnel si está activo"""
     with app_instance.app_context():
+        from notif import crear_notificacion # Importado dentro del contexto para evitar errores circulares
         try:
             config = AppConfig.query.first()
             if config and config.enable_funnel:
@@ -113,11 +124,13 @@ def iniciar_tailscale(app_instance):
                 if result.returncode == 0:
                     print("[+] ¡ÉXITO! Tailscale Funnel configurado en el puerto 5000.")
                     print(f"[+] ENLACE PÚBLICO ACTIVO: {url}")
+                    crear_notificacion(f"Tailscale Funnel CONECTADO: {url}", "success")
                     if result.stdout:
                         print(f"[+] Respuesta Tailscale: {result.stdout.strip()}")
                 else:
                     print("[-] ATENCIÓN: Tailscale rechazó la apertura del túnel.")
                     print(f"[-] Razón del error: {result.stderr.strip() or result.stdout.strip()}")
+                    crear_notificacion("Tailscale Funnel falló al conectar o se DESCONECTÓ.", "danger")
                 
                 print("="*60 + "\n")
         except Exception as e:

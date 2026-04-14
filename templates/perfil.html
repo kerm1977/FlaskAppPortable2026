@@ -54,7 +54,6 @@
                 </div>
             </div>
 
-            <!-- SECCIÓN: CORREO Y PIN DE RECUPERACIÓN (Mostrados para editar el PIN) -->
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label>Correo Electrónico</label>
@@ -64,7 +63,6 @@
                     <label>PIN de Recuperación</label>
                     <div class="input-group">
                         <input type="password" class="form-control glass-input" value="******" readonly>
-                        <!-- Botón para cambiar el PIN que solo aparece en modo edición -->
                         <button type="button" class="btn btn-warning glass-btn edit-only" data-bs-toggle="modal" data-bs-target="#changePinModal" title="Modificar PIN">
                             <i class="bi bi-pencil"></i>
                         </button>
@@ -118,7 +116,6 @@
                 {% endif %}
             </div>
 
-            <!-- BOTÓN DEL PANEL DE ADMINISTRACIÓN (SOLO SUPERUSUARIOS) -->
             {% if current_user.is_superuser %}
             <div class="mt-5">
                 <hr class="bg-white mb-4">
@@ -152,13 +149,11 @@
 
         <hr class="bg-white my-4 edit-only">
         <div class="text-center edit-only">
-            <!-- Funciones de base.html se mantienen inline por estar globales -->
-            <button class="btn btn-warning glass-btn" onclick="confirmDelete('/user/delete_account')"><i class="bi bi-exclamation-triangle"></i> Eliminar Mi Cuenta</button>
+            <button class="btn btn-warning glass-btn" onclick="confirmDelete('{{ url_for('user.delete_account') }}')"><i class="bi bi-exclamation-triangle"></i> Eliminar Mi Cuenta</button>
         </div>
     </div>
 </div>
 
-<!-- Modal Cambiar Contraseña -->
 <div class="modal fade glass-modal" id="changePassModal" tabindex="-1" aria-labelledby="changePassModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -173,13 +168,11 @@
                         Verifica tu identidad primero. Luego podrás ingresar una nueva contraseña.
                     </div>
 
-                    <!-- Verificación -->
                     <div class="glass-panel p-3 mb-4" style="background: rgba(0,0,0,0.1);">
                         <h6 class="mb-3 text-warning"><i class="bi bi-1-circle"></i> Verificar Identidad</h6>
                         
                         <p class="small mb-1 fw-bold text-white-50">Opción A: Credenciales</p>
                         
-                        <!-- CONTENEDOR DE ERROR -->
                         <div id="cred-feedback" class="text-start mb-2"></div>
                         
                         <div class="mb-2 position-relative">
@@ -207,7 +200,6 @@
                         </div>
                     </div>
 
-                    <!-- Nueva Contraseña (Bloqueada por defecto) -->
                     <div class="glass-panel p-3" id="new-pwd-section" style="background: rgba(0,0,0,0.1); opacity: 0.5;">
                         <h6 class="mb-3 text-success"><i class="bi bi-2-circle"></i> Nueva Contraseña</h6>
                         <div class="mb-3 position-relative">
@@ -233,7 +225,6 @@
     </div>
 </div>
 
-<!-- Modal Cambiar PIN -->
 <div class="modal fade glass-modal" id="changePinModal" tabindex="-1" aria-labelledby="changePinModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -269,43 +260,46 @@
     </div>
 </div>
 
-<!-- Modal Carnet -->
 <div class="modal fade glass-modal" id="carnetModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-dialog modal-dialog-centered modal-sm modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header border-0">
+            <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title"><i class="bi bi-person-vcard"></i> Tu Carnet Digital</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             
-            <div class="modal-body d-flex justify-content-center border-0 p-4">
-                <div id="carnet-export-node" style="width: 270px; height: 480px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; padding: 20px; color: white; position: relative;">
-                    <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; height: 100%; padding: 15px; display: flex; flex-direction: column; align-items: center; text-align: center;">
-                        <h4 class="mb-3" style="font-weight: 600; letter-spacing: 2px; font-size: 1.2rem;">MI PERFIL</h4>
-                        <div style="width: 120px; height: 120px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; border: 3px solid rgba(255,255,255,0.6); overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
-                            <img id="carnet-img" src="{{ user.imagen_flyer if user.imagen_flyer else 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=' }}" style="width: 100%; height: 100%; object-fit: cover; display: {{ 'block' if user.imagen_flyer else 'none' }};">
-                            <i id="carnet-placeholder" class="bi bi-person-fill" style="font-size: 4rem; color: rgba(255,255,255,0.4); display: {{ 'none' if user.imagen_flyer else 'block' }};"></i>
-                        </div>
-                        <h5 class="mb-1" style="font-weight: bold; text-transform: uppercase;">{{ user.nombre }}</h5>
-                        <p class="mb-3" style="font-size: 0.9rem; opacity: 0.9;">{{ user.primer_apellido }} {{ user.segundo_apellido }}</p>
+            <div class="modal-body d-flex justify-content-center border-0 p-3">
+                <div id="carnet-export-node" style="width: 260px; height: 430px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; padding: 15px; color: white; position: relative;">
+                    <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; height: 100%; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center;">
                         
-                        <div style="width: 100%; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; text-align: left; font-size: 0.8rem; flex-grow: 1;">
-                            <div class="mb-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><strong>Email:</strong> <span style="font-size: 0.75rem;">{{ user.email }}</span></div>
+                        <h4 class="mb-2" style="font-weight: 600; letter-spacing: 2px; font-size: 1.1rem;">MI PERFIL</h4>
+                        
+                        <div style="width: 100px; height: 100px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; border: 3px solid rgba(255,255,255,0.6); overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            <img id="carnet-img" src="{{ user.imagen_flyer if user.imagen_flyer else 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=' }}" style="width: 100%; height: 100%; object-fit: cover; display: {{ 'block' if user.imagen_flyer else 'none' }};">
+                            <i id="carnet-placeholder" class="bi bi-person-fill" style="font-size: 3.5rem; color: rgba(255,255,255,0.4); display: {{ 'none' if user.imagen_flyer else 'block' }};"></i>
+                        </div>
+                        
+                        <h5 class="mb-1" style="font-weight: bold; text-transform: uppercase; font-size: 1.1rem;">{{ user.nombre }}</h5>
+                        <p class="mb-2" style="font-size: 0.85rem; opacity: 0.9;">{{ user.primer_apellido }} {{ user.segundo_apellido }}</p>
+                        
+                        <div style="width: 100%; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; text-align: left; font-size: 0.75rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                            <div class="mb-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><strong>Email:</strong> <span style="font-size: 0.7rem;">{{ user.email }}</span></div>
                             {% if user.datos_adicionales and user.datos_adicionales.get('Sangre') %}
                             <div class="mb-1"><strong>Sangre:</strong> {{ user.datos_adicionales.get('Sangre') }}</div>
                             {% endif %}
                             {% if user.datos_adicionales and user.datos_adicionales.get('Telefono') %}
                             <div class="mb-1"><strong>Teléfono:</strong> {{ user.datos_adicionales.get('Telefono') }}</div>
                             {% endif %}
-                            <div class="mt-2" style="font-size: 0.7rem; opacity: 0.7;">Miembro desde: {{ user.fecha_registro.strftime('%Y') }}</div>
+                            <div class="mt-1" style="font-size: 0.65rem; opacity: 0.7;">Miembro desde: {{ user.fecha_registro.strftime('%Y') }}</div>
                         </div>
-                        <div class="mt-3" style="font-family: monospace; letter-spacing: 3px; font-size: 0.75rem; border-top: 1px dashed rgba(255,255,255,0.3); padding-top: 10px; width: 100%;">
+                        
+                        <div class="mt-2" style="font-family: monospace; letter-spacing: 3px; font-size: 0.75rem; border-top: 1px dashed rgba(255,255,255,0.3); padding-top: 8px; width: 100%;">
                             {{ "%08d" % user.id }}
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer border-0 justify-content-center">
+            <div class="modal-footer border-0 justify-content-center pt-0">
                 <button type="button" class="btn btn-secondary glass-btn" data-bs-dismiss="modal">Cerrar</button>
                 <button type="button" class="btn btn-success glass-btn" id="btn-descargar"><i class="bi bi-download"></i> Descargar PNG</button>
             </div>
@@ -313,12 +307,10 @@
     </div>
 </div>
 
-<!-- Renderizamos div invisible si es necesario auto-descargar la llave -->
 {% if session.pop('trigger_download', False) %}
     <div id="auto-download-key-trigger" data-url="{{ url_for('user.download_key') }}" style="display:none;"></div>
 {% endif %}
 
-<!-- Puente: Variables de Jinja inyectadas para el JS Externo -->
 <script>
     window.APP_CONFIG = {
         lockoutRemaining: {{ lockout_remaining | default(0) }},
@@ -330,6 +322,5 @@
     };
 </script>
 
-<!-- Truco de Caché: Agregamos ?v={{ range(1, 9999) | random }} para forzar al navegador a cargar el JS nuevo -->
 <script src="{{ url_for('static', filename='js/perfilBloqueo.js') }}?v={{ range(1, 9999) | random }}"></script>
 {% endblock %}

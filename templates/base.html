@@ -201,6 +201,18 @@
                     {{ current_user.nombre }}
                 </a>
                 
+                <!-- CAMPANITA NOTIFICACIONES SUPERADMIN (Desktop) -->
+                {% if current_user.is_superuser %}
+                <a href="{{ url_for('notif.notificaciones') }}" class="text-white text-decoration-none me-3 position-relative profile-link-nav" title="Notificaciones del Sistema">
+                    <i class="bi bi-bell-fill fs-5"></i>
+                    {% if unread_notifs and unread_notifs > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55rem; padding: 0.25em 0.4em;">
+                        {{ unread_notifs }}
+                    </span>
+                    {% endif %}
+                </a>
+                {% endif %}
+                
                 <!-- Botón de Logout Responsivo -->
                 <a href="{{ url_for('user.logout') }}" class="btn btn-sm glass-btn nav-logout-btn" title="Cerrar Sesión">
                     <span class="d-none d-md-inline">Cerrar Sesión</span>
@@ -246,9 +258,19 @@
             
             {% if current_user.is_superuser %}
             <a href="{{ url_for('user.ajustes_sitio') }}" class="mobile-icon" title="Ajustes del Sitio"><i class="bi bi-gear"></i></a>
+            
+            <!-- CAMPANITA MÓVIL SUPERADMIN -->
+            <a href="{{ url_for('notif.notificaciones') }}" class="mobile-icon position-relative" title="Notificaciones">
+                <i class="bi bi-bell"></i>
+                {% if unread_notifs and unread_notifs > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="width: 10px; height: 10px;"></span>
+                {% endif %}
+            </a>
+            {% else %}
+            <!-- Relleno para usuarios regulares -->
+            <a href="#" class="mobile-icon"><i class="bi bi-bell"></i></a>
             {% endif %}
             
-            <a href="#" class="mobile-icon"><i class="bi bi-bell"></i></a>
             <a href="{{ url_for('user.logout') }}" class="mobile-icon"><i class="bi bi-box-arrow-right"></i></a>
         {% else %}
             <a href="{{ url_for('user.login') }}" class="mobile-bottom-text">
