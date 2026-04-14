@@ -3,11 +3,12 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import db
-from models import User
+from models import User, AppConfig
 import json
 import io
 import os
 import time
+import socket
 from cryptography.fernet import Fernet
 
 user_bp = Blueprint('user', __name__)
@@ -458,7 +459,7 @@ def admin_reset_user(user_id):
     flash(f'Cuenta de {user_to_reset.email} rescatada con éxito. Se está descargando su nueva llave.', 'success')
     return redirect(url_for('user.admin_dashboard'))
 
-# --- RUTA DE AJUSTES DEL SITIO ---
+# --- RUTA DE AJUSTES DEL SITIO (AHORA CONECTADA A LA BD) ---
 @user_bp.route('/ajustes_sitio', methods=['GET', 'POST'])
 @login_required
 def ajustes_sitio():
@@ -466,34 +467,43 @@ def ajustes_sitio():
         flash('Acceso denegado. Solo los Superusuarios pueden modificar los ajustes del sistema.', 'danger')
         return redirect(url_for('routes.home'))
         
+    try:
+        machine_name_hint = socket.gethostname().lower()
+    except:
+        machine_name_hint = "tu-pc"
+        
+    # Buscar la configuración en la Base de Datos o crear la primera si no existe
+    config = AppConfig.query.first()
+    if not config:
+        config = AppConfig()
+        db.session.add(config)
+        db.session.commit()
+        
     if request.method == 'POST':
-        # 1. Atrapamos TODOS los datos manualmente y los guardamos en la sesión
-        session['tailscale_device_name'] = request.form.get('tailscale_device_name', '')
-        session['tailnet_domain'] = request.form.get('tailnet_domain', 'taileb5c96.ts.net')
-        session['magic_dns'] = request.form.get('magic_dns', '100.100.100.100')
-        session['global_nameserver'] = request.form.get('global_nameserver', 'Local DNS settings')
-        enable_funnel = request.form.get('enable_tailscale_funnel') == 'on'
-        session['enable_tailscale_funnel'] = enable_funnel
+        # 1. Guardar TODO permanentemente en la Base de Datos SQL
+        config.site_name = request.form.get('site_name', 'GlassApp Portable')
+        config.support_email = request.form.get('support_email', 'soporte@midominio.com')
+        config.global_theme = request.form.get('global_theme', '')
         
-        # 2. Guardar en JSON para que app.py pueda leerlo al arrancar el servidor
-        config_data = {
-            "tailscale_device_name": session['tailscale_device_name'],
-            "tailnet_domain": session['tailnet_domain'],
-            "magic_dns": session['magic_dns'],
-            "global_nameserver": session['global_nameserver'],
-            "enable_funnel": enable_funnel
-        }
+        config.tailscale_device_name = request.form.get('tailscale_device_name', machine_name_hint)
+        config.tailnet_domain = request.form.get('tailnet_domain', 'taileb5c96.ts.net')
+        config.magic_dns = request.form.get('magic_dns', '100.100.100.100')
+        config.global_nameserver = request.form.get('global_nameserver', 'Local DNS settings')
+        config.enable_funnel = request.form.get('enable_tailscale_funnel') == 'on'
         
-        try:
-            with open('tailscale_config.json', 'w') as f:
-                json.dump(config_data, f, indent=4)
-        except Exception as e:
-            print(f"Error guardando tailscale_config.json: {e}")
-            
-        flash('Ajustes del sitio y configuración de Tailscale actualizados correctamente.', 'success')
+        db.session.commit()
+        
+        flash('Ajustes globales guardados permanentemente en la Base de Datos.', 'success')
         return redirect(url_for('user.ajustes_sitio'))
         
-    return render_template('ajustes.html')
+    # 2. Enviar los datos de la BD a la sesión solo para que el frontend HTML se llene automáticamente
+    session['tailscale_device_name'] = config.tailscale_device_name
+    session['tailnet_domain'] = config.tailnet_domain
+    session['magic_dns'] = config.magic_dns
+    session['global_nameserver'] = config.global_nameserver
+    session['enable_tailscale_funnel'] = config.enable_funnel
+        
+    return render_template('ajustes.html', machine_hint=machine_name_hint)
 
 @user_bp.route('/logout')
 @login_required

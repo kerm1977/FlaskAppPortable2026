@@ -6,28 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Flask Glassmorphic</title>
     
-    <!-- SCRIPT MÁGICO: Carga el tema y nombre global en toda la app al instante sin parpadeos -->
+    <!-- SCRIPT MÁGICO ACTUALIZADO: Prioriza el backend (Global) sobre el navegador (Local) -->
     <script>
         (function() {
-            const savedTheme = localStorage.getItem('glass-theme');
-            const savedName = localStorage.getItem('glass-site-name');
+            // 1. Intentamos leer los valores globales forzados por el servidor (Backend)
+            const backendTheme = "{{ global_theme | default('') | safe }}";
+            const backendName = "{{ global_site_name | default('') | safe }}";
+
+            // 2. Si el servidor envió algo, lo usamos. Si no, caemos al localStorage (para previsualizaciones o por defecto)
+            const activeTheme = backendTheme ? backendTheme : localStorage.getItem('glass-theme');
+            const activeName = backendName ? backendName : localStorage.getItem('glass-site-name');
             
             // Cambia el título de la pestaña del navegador inmediatamente
-            if(savedName) {
-                document.title = savedName;
+            if(activeName) {
+                document.title = activeName;
             }
 
             document.addEventListener("DOMContentLoaded", function() {
                 // Aplica el fondo apenas el body exista
-                if(savedTheme) {
-                    document.body.style.backgroundImage = savedTheme;
+                if(activeTheme) {
+                    document.body.style.backgroundImage = activeTheme;
                     document.body.style.backgroundAttachment = "fixed";
                 }
                 
                 // Aplica el nombre personalizado en la barra superior si existe
-                if(savedName) {
+                if(activeName) {
                     const brandEl = document.getElementById('global-brand-name');
-                    if(brandEl) brandEl.textContent = savedName;
+                    if(brandEl) brandEl.textContent = activeName;
                 }
             });
         })();
@@ -135,6 +140,16 @@
         .floating-back-btn:hover {
             transform: scale(1.05) !important;
         }
+
+        /* Enlace de nombre en el Navbar */
+        .profile-link-nav {
+            transition: color 0.2s ease, transform 0.2s ease;
+            display: inline-block;
+        }
+        .profile-link-nav:hover {
+            color: #4ade80 !important;
+            transform: scale(1.05);
+        }
         
         @media screen and (max-width: 768px) {
             .mobile-bottom-bar {
@@ -148,6 +163,19 @@
                 left: 15px !important;
                 padding: 8px 15px !important;
                 font-size: 0.9rem !important;
+            }
+            /* Convierte el botón de cerrar sesión en un círculo en móviles */
+            .nav-logout-btn {
+                width: 38px !important;
+                height: 38px !important;
+                padding: 0 !important;
+                border-radius: 50% !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            .nav-logout-btn i {
+                font-size: 1.2rem;
             }
         }
     </style>
@@ -168,8 +196,16 @@
             
             {% if current_user.is_authenticated %}
             <div class="d-flex text-white align-items-center">
-                <span class="me-3">¡Hola, {{ current_user.nombre }}!</span>
-                <a href="{{ url_for('user.logout') }}" class="btn btn-sm glass-btn">Cerrar Sesión</a>
+                <!-- Mostramos solo el nombre, convertido a enlace interactivo hacia el perfil -->
+                <a href="{{ url_for('user.perfil') }}" class="text-white text-decoration-none me-2 me-sm-3 profile-link-nav" title="Ir a mi perfil">
+                    {{ current_user.nombre }}
+                </a>
+                
+                <!-- Botón de Logout Responsivo -->
+                <a href="{{ url_for('user.logout') }}" class="btn btn-sm glass-btn nav-logout-btn" title="Cerrar Sesión">
+                    <span class="d-none d-md-inline">Cerrar Sesión</span>
+                    <i class="bi bi-box-arrow-right d-inline d-md-none"></i>
+                </a>
             </div>
             {% endif %}
         </div>
@@ -224,59 +260,7 @@
         {% endif %}
     </div>
 
-    <!-- Modal de Eliminación -->
-    <div class="modal fade glass-modal" id="deleteModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-warning"></i> Confirmar Eliminación</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body border-0" id="deleteModalBody">
-                    ¿Estás seguro que deseas eliminar esto? (Paso 1 de 3)
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn glass-btn" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-warning" id="deleteModalBtn" onclick="processDeleteStep()">Continuar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let deleteUrl = '';
-        let deleteStep = 1;
-        const deleteModalEl = document.getElementById('deleteModal');
-        let deleteModal = null;
-        if(deleteModalEl) deleteModal = new bootstrap.Modal(deleteModalEl);
-
-        function confirmDelete(url) {
-            deleteUrl = url;
-            deleteStep = 1;
-            document.getElementById('deleteModalBody').innerText = '¿Estás seguro que deseas eliminar esto? (Paso 1 de 3)';
-            document.getElementById('deleteModalBtn').className = 'btn btn-warning';
-            document.getElementById('deleteModalBtn').innerText = 'Continuar';
-            if(deleteModal) deleteModal.show();
-        }
-
-        function processDeleteStep() {
-            deleteStep++;
-            const body = document.getElementById('deleteModalBody');
-            const btn = document.getElementById('deleteModalBtn');
-
-            if (deleteStep === 2) {
-                body.innerText = 'Esta acción es irreversible y no podrá deshacerse. ¿Confirmas? (Paso 2 de 3)';
-            } else if (deleteStep === 3) {
-                body.innerText = 'Última advertencia. ¿Realmente deseas eliminarlo permanentemente? (Paso 3 de 3)';
-                btn.className = 'btn btn-danger';
-                btn.innerText = 'Eliminar Definitivamente';
-            } else if (deleteStep > 3) {
-                window.location.href = deleteUrl;
-            }
-        }
-    </script>
-
-    <!-- LOGICA GLOBAL DE PERSISTENCIA DEL NOMBRE DE LA APP -->
+    <!-- LOGICA DE PERSISTENCIA LOCAL (Solo para previsualización inmediata) -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const siteNameInput = document.getElementById('site-name-input');
@@ -284,23 +268,19 @@
             
             // Si el input existe (es decir, estamos en la pantalla de ajustes)
             if (siteNameInput) {
-                // Rellenar el input con el nombre guardado previamente (si existe)
-                const savedName = localStorage.getItem('glass-site-name');
+                // Prioridad a la variable global de Jinja si existe
+                const backendName = "{{ global_site_name | default('') | safe }}";
+                const savedName = backendName ? backendName : localStorage.getItem('glass-site-name');
+                
                 if (savedName) {
                     siteNameInput.value = savedName;
                 }
 
-                // Escuchar cada tecla presionada
+                // Escuchar cada tecla presionada para previsualizar antes de guardar
                 siteNameInput.addEventListener('input', function() {
                     const newName = this.value.trim() || 'GlassApp Portable';
-                    
-                    // 1. Actualizar el título de la pestaña del navegador
                     document.title = newName;
-                    
-                    // 2. Actualizar el logo/texto de la barra superior al instante
                     if (brandEl) brandEl.textContent = newName;
-                    
-                    // 3. Guardar el nuevo nombre en la memoria del navegador
                     localStorage.setItem('glass-site-name', newName);
                 });
             }

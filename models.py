@@ -30,3 +30,21 @@ class User(UserMixin, db.Model):
     datos_adicionales = db.Column(db.JSON, default={})
     
     fecha_registro = db.Column(db.DateTime, default=get_cr_time)
+
+# ==========================================
+# NUEVA TABLA: CONFIGURACIÓN GLOBAL DEL SISTEMA
+# ==========================================
+class AppConfig(db.Model):
+    __tablename__ = 'app_config'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    site_name = db.Column(db.String(100), default='GlassApp Portable')
+    support_email = db.Column(db.String(120), default='soporte@midominio.com')
+    global_theme = db.Column(db.String(255), default='')
+    
+    # Configuraciones de Tailscale
+    tailscale_device_name = db.Column(db.String(100), default='')
+    tailnet_domain = db.Column(db.String(100), default='taileb5c96.ts.net')
+    magic_dns = db.Column(db.String(50), default='100.100.100.100')
+    global_nameserver = db.Column(db.String(50), default='Local DNS settings')
+    enable_funnel = db.Column(db.Boolean, default=False)

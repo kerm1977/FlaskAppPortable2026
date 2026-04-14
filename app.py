@@ -1,13 +1,12 @@
 # app.py
 import os
-import json
 import subprocess
 from flask import Flask
 from db import db, init_db
 from flask_login import LoginManager
 from user import user_bp
 from routes import routes_bp
-from models import User
+from models import User, AppConfig
 from werkzeug.security import generate_password_hash
 from flask_migrate import Migrate
 from sqlalchemy.exc import OperationalError
@@ -33,6 +32,30 @@ def load_user(user_id):
 # Registrar Blueprints
 app.register_blueprint(user_bp)
 app.register_blueprint(routes_bp)
+
+# ==================================================
+# INYECTOR DE VARIABLES GLOBALES (DESDE BASE DE DATOS)
+# ==================================================
+@app.context_processor
+def inject_global_settings():
+    try:
+        config = AppConfig.query.first()
+        if config:
+            return {
+                'global_site_name': config.site_name,
+                'global_support_email': config.support_email,
+                'global_theme': config.global_theme
+            }
+    except Exception:
+        # Pasa en silencio si la tabla aún no se ha creado
+        pass
+        
+    # Valores por defecto de emergencia
+    return {
+        'global_site_name': 'GlassApp Portable',
+        'global_support_email': 'soporte@midominio.com',
+        'global_theme': ''
+    }
 
 # ==================================================
 # INYECTOR SEGURO DE SUPERUSUARIOS
@@ -67,50 +90,45 @@ def crear_superusuarios():
         print("="*60 + "\n")
 
 # ==================================================
-# INICIADOR AUTOMÁTICO DE TAILSCALE FUNNEL
+# INICIADOR AUTOMÁTICO DE TAILSCALE FUNNEL (DESDE BD)
 # ==================================================
-def iniciar_tailscale():
-    """Lee el archivo JSON de configuración y lanza el Funnel si está activo"""
-    if os.path.exists('tailscale_config.json'):
+def iniciar_tailscale(app_instance):
+    """Lee la Base de Datos SQLite y lanza el Funnel si está activo"""
+    with app_instance.app_context():
         try:
-            with open('tailscale_config.json', 'r') as f:
-                config = json.load(f)
-                
-            if config.get('enable_funnel', False):
+            config = AppConfig.query.first()
+            if config and config.enable_funnel:
                 print("\n" + "="*60)
-                print("[*] INICIANDO TAILSCALE FUNNEL (Ajustes Globales)...")
+                print("[*] INICIANDO TAILSCALE FUNNEL DESDE LA BASE DE DATOS...")
                 
-                # Ejecuta el comando de Tailscale capturando la salida para diagnosticar problemas
-                # shell=True es crucial en Windows para que reconozca comandos del sistema
+                # Ejecuta el comando de Tailscale capturando la salida
                 result = subprocess.run(["tailscale", "funnel", "--bg", "5000"], capture_output=True, text=True, shell=True)
                 
-                # Construye la URL exacta con los datos guardados manualmente
-                device = config.get('tailscale_device_name', 'desktop-7dh07va')
-                domain = config.get('tailnet_domain', 'taileb5c96.ts.net')
+                # Construye la URL exacta con los datos guardados
+                device = config.tailscale_device_name or 'desktop-7dh07va'
+                domain = config.tailnet_domain or 'taileb5c96.ts.net'
                 url = f"https://{device}.{domain}"
                 
-                # Si el comando fue exitoso (código 0)
+                # Si el comando fue exitoso
                 if result.returncode == 0:
                     print("[+] ¡ÉXITO! Tailscale Funnel configurado en el puerto 5000.")
                     print(f"[+] ENLACE PÚBLICO ACTIVO: {url}")
                     if result.stdout:
                         print(f"[+] Respuesta Tailscale: {result.stdout.strip()}")
                 else:
-                    # Si Tailscale bloquea el túnel, te mostrará la razón exacta aquí
                     print("[-] ATENCIÓN: Tailscale rechazó la apertura del túnel.")
                     print(f"[-] Razón del error: {result.stderr.strip() or result.stdout.strip()}")
-                    print("[!] Verifica los 'Access Controls' y 'HTTPS Certificates' en la web de Tailscale.")
                 
                 print("="*60 + "\n")
         except Exception as e:
-            print(f"[!] Error al leer configuración o iniciar Tailscale: {e}")
+            print(f"[!] Error al intentar leer la base de datos o iniciar Tailscale: {e}")
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all() 
         crear_superusuarios() 
         
-    # Ejecuta el script de Tailscale justo antes de levantar el servidor Flask
-    iniciar_tailscale()
+    # Ejecuta el script de Tailscale pasándole el contexto de la aplicación para que pueda leer la BD
+    iniciar_tailscale(app)
         
     app.run(debug=True, port=5000)
