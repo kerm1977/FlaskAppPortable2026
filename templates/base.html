@@ -6,6 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>App Flask Glassmorphic</title>
     
+    <!-- SCRIPT MÁGICO: Carga el tema y nombre global en toda la app al instante sin parpadeos -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('glass-theme');
+            const savedName = localStorage.getItem('glass-site-name');
+            
+            // Cambia el título de la pestaña del navegador inmediatamente
+            if(savedName) {
+                document.title = savedName;
+            }
+
+            document.addEventListener("DOMContentLoaded", function() {
+                // Aplica el fondo apenas el body exista
+                if(savedTheme) {
+                    document.body.style.backgroundImage = savedTheme;
+                    document.body.style.backgroundAttachment = "fixed";
+                }
+                
+                // Aplica el nombre personalizado en la barra superior si existe
+                if(savedName) {
+                    const brandEl = document.getElementById('global-brand-name');
+                    if(brandEl) brandEl.textContent = savedName;
+                }
+            });
+        })();
+    </script>
+
     <!-- Los estilos CSS conectados desde tu main.css -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     
@@ -16,26 +43,35 @@
 
     <style>
         /* =========================================
-           AJUSTE DEL BOTÓN CERRAR EN ALERTAS
+           AJUSTE DE MENSAJES DE ALERTA (FLASH)
            ========================================= */
+        .alert {
+            color: #ffffff !important; /* Fuerza el texto a ser blanco siempre */
+            font-weight: 500 !important; /* Lo hace un poco más grueso para mayor legibilidad */
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3); /* Sombra suave para separar del fondo */
+        }
+        
         .alert-dismissible {
-            padding-right: 4rem !important; /* Espacio seguro para que el texto no choque con la X */
+            padding-right: 4rem !important;
             position: relative;
         }
+        
         .alert-dismissible .btn-close {
             position: absolute !important;
             top: 50% !important;
-            right: 20px !important; /* Empuja la X hacia el centro horizontalmente */
-            transform: translateY(-50%) !important; /* Centrado vertical perfecto */
+            right: 20px !important;
+            transform: translateY(-50%) !important;
             margin: 0 !important;
             padding: 0.5rem !important;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); /* Hace que la X sea más visible */
         }
 
         /* =========================================
            ESTILOS FORZADOS PARA LA BARRA MÓVIL
            ========================================= */
         .mobile-bottom-bar {
-            display: none !important; /* Oculto por defecto en escritorio, forzado */
+            display: none !important;
             position: fixed !important;
             bottom: 0 !important;
             left: 0 !important;
@@ -47,7 +83,7 @@
             justify-content: space-around !important;
             align-items: center !important;
             padding: 12px 0 !important;
-            z-index: 999999 !important; /* Nivel máximo absoluto */
+            z-index: 999999 !important;
             visibility: visible !important;
             opacity: 1 !important;
         }
@@ -64,7 +100,6 @@
             color: #4ade80 !important;
         }
 
-        /* Ajuste para los textos de la barra inferior cuando no están logueados */
         .mobile-bottom-text {
             font-size: 0.75rem !important;
             text-transform: uppercase !important;
@@ -81,7 +116,6 @@
             color: rgba(255,255,255,0.8) !important;
         }
 
-        /* Botón Flotante Volver */
         .floating-back-btn {
             position: fixed !important;
             bottom: 30px !important;
@@ -102,16 +136,15 @@
             transform: scale(1.05) !important;
         }
         
-        /* Media Query EXCLUSIVO para Vistas Móviles y Tablets (Aumentado a 768px) */
         @media screen and (max-width: 768px) {
             .mobile-bottom-bar {
-                display: flex !important; /* Fuerza la visibilidad de la barra sin importar qué */
+                display: flex !important;
             }
             body {
-                padding-bottom: 90px !important; /* Espacio para que el contenido no quede detrás de la barra */
+                padding-bottom: 90px !important;
             }
             .floating-back-btn {
-                bottom: 85px !important; /* Sube el botón flotante para no chocar con la barra */
+                bottom: 85px !important;
                 left: 15px !important;
                 padding: 8px 15px !important;
                 font-size: 0.9rem !important;
@@ -121,7 +154,7 @@
 </head>
 <body>
 
-    <!-- Botón Flotante Global para Volver Atrás (Solo visible si está logueado y no está en Home) -->
+    <!-- Botón Flotante Global para Volver Atrás -->
     {% if current_user.is_authenticated and request.endpoint != 'routes.home' %}
     <button onclick="window.history.length > 1 ? window.history.back() : window.location.href='/'" class="btn glass-btn floating-back-btn">
         <i class="bi bi-arrow-left"></i> Volver
@@ -130,7 +163,9 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark glass-navbar mb-4">
         <div class="container">
-            <a class="navbar-brand" href="#">GlassApp</a>
+            <!-- AQUÍ AGREGAMOS EL ID global-brand-name PARA PODER MODIFICARLO EN VIVO -->
+            <a class="navbar-brand" id="global-brand-name" href="#">GlassApp</a>
+            
             {% if current_user.is_authenticated %}
             <div class="d-flex text-white align-items-center">
                 <span class="me-3">¡Hola, {{ current_user.nombre }}!</span>
@@ -141,12 +176,23 @@
     </nav>
 
     <div class="container pb-5">
-        <!-- ZONA DE MENSAJES DE ALERTA MODIFICADA CON LA "X" PARA CERRAR -->
+        <!-- ZONA DE MENSAJES DE ALERTA -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show glass-panel py-2 mb-3" role="alert">
-                        {{ message }}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show glass-panel py-3 mb-4 d-flex align-items-center" role="alert" style="border-left: 5px solid {% if category == 'success' %}#4ade80{% elif category == 'danger' %}#ff4d4d{% elif category == 'warning' %}#ffc107{% else %}#667eea{% endif %};">
+                        {% if category == 'success' %}
+                            <i class="bi bi-check-circle-fill fs-4 me-3 text-success"></i>
+                        {% elif category == 'danger' %}
+                            <i class="bi bi-exclamation-octagon-fill fs-4 me-3 text-danger"></i>
+                        {% elif category == 'warning' %}
+                            <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill fs-4 me-3 text-info"></i>
+                        {% endif %}
+                        <div>
+                            {{ message }}
+                        </div>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
@@ -159,26 +205,26 @@
     <!-- Barra Inferior Móvil -->
     <div class="mobile-bottom-bar">
         {% if current_user.is_authenticated %}
-            <!-- Accesos para usuario logueado -->
             <a href="{{ url_for('routes.home') }}" class="mobile-icon"><i class="bi bi-house"></i></a>
             <a href="{{ url_for('user.perfil') }}" class="mobile-icon"><i class="bi bi-person"></i></a>
-            <a href="#" class="mobile-icon"><i class="bi bi-gear"></i></a>
+            
+            {% if current_user.is_superuser %}
+            <a href="{{ url_for('user.ajustes_sitio') }}" class="mobile-icon" title="Ajustes del Sitio"><i class="bi bi-gear"></i></a>
+            {% endif %}
+            
             <a href="#" class="mobile-icon"><i class="bi bi-bell"></i></a>
             <a href="{{ url_for('user.logout') }}" class="mobile-icon"><i class="bi bi-box-arrow-right"></i></a>
         {% else %}
-            <!-- Accesos para visitante -->
             <a href="{{ url_for('user.login') }}" class="mobile-bottom-text">
-                <i class="bi bi-box-arrow-in-right" style="font-size: 1.4rem;"></i>
-                Login
+                <i class="bi bi-box-arrow-in-right" style="font-size: 1.4rem;"></i> Login
             </a>
             <a href="{{ url_for('user.registro') }}" class="mobile-bottom-text">
-                <i class="bi bi-person-plus" style="font-size: 1.4rem;"></i>
-                Registro
+                <i class="bi bi-person-plus" style="font-size: 1.4rem;"></i> Registro
             </a>
         {% endif %}
     </div>
 
-    <!-- Modal de Eliminación Seguro (3 Pasos) -->
+    <!-- Modal de Eliminación -->
     <div class="modal fade glass-modal" id="deleteModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -198,16 +244,11 @@
     </div>
 
     <script>
-        // Lógica de Eliminación de 3 pasos global
         let deleteUrl = '';
         let deleteStep = 1;
-        
-        // Se inicializa el modal solo si el elemento existe (evita errores en consola)
         const deleteModalEl = document.getElementById('deleteModal');
         let deleteModal = null;
-        if(deleteModalEl) {
-            deleteModal = new bootstrap.Modal(deleteModalEl);
-        }
+        if(deleteModalEl) deleteModal = new bootstrap.Modal(deleteModalEl);
 
         function confirmDelete(url) {
             deleteUrl = url;
@@ -233,6 +274,37 @@
                 window.location.href = deleteUrl;
             }
         }
+    </script>
+
+    <!-- LOGICA GLOBAL DE PERSISTENCIA DEL NOMBRE DE LA APP -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const siteNameInput = document.getElementById('site-name-input');
+            const brandEl = document.getElementById('global-brand-name');
+            
+            // Si el input existe (es decir, estamos en la pantalla de ajustes)
+            if (siteNameInput) {
+                // Rellenar el input con el nombre guardado previamente (si existe)
+                const savedName = localStorage.getItem('glass-site-name');
+                if (savedName) {
+                    siteNameInput.value = savedName;
+                }
+
+                // Escuchar cada tecla presionada
+                siteNameInput.addEventListener('input', function() {
+                    const newName = this.value.trim() || 'GlassApp Portable';
+                    
+                    // 1. Actualizar el título de la pestaña del navegador
+                    document.title = newName;
+                    
+                    // 2. Actualizar el logo/texto de la barra superior al instante
+                    if (brandEl) brandEl.textContent = newName;
+                    
+                    // 3. Guardar el nuevo nombre en la memoria del navegador
+                    localStorage.setItem('glass-site-name', newName);
+                });
+            }
+        });
     </script>
 </body>
 </html>

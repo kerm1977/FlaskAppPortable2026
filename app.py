@@ -1,4 +1,7 @@
 # app.py
+import os
+import json
+import subprocess
 from flask import Flask
 from db import db, init_db
 from flask_login import LoginManager
@@ -15,8 +18,8 @@ app.config['SECRET_KEY'] = 'glassmorphic_secret_key_123'
 # Inicializar Base de datos
 init_db(app)
 
-# Inicializar Flask-Migrate (Para preservar la BD existente)
-migrate = Migrate(app, db)
+# FIX SQLITE: render_as_batch=True es OBLIGATORIO para que SQLite pueda alterar tablas existentes
+migrate = Migrate(app, db, render_as_batch=True)
 
 # Configurar Login Manager
 login_manager = LoginManager()
@@ -40,9 +43,7 @@ def crear_superusuarios():
     
     try:
         for i, email in enumerate(super_emails):
-            # Revisamos si ya existe en la base de datos
             admin = User.query.filter_by(email=email).first()
-            
             if not admin:
                 print(f"[*] Inyectando superusuario: {email}")
                 nuevo_admin = User(
@@ -51,35 +52,65 @@ def crear_superusuarios():
                     segundo_apellido="Admin",
                     email=email,
                     password_hash=generate_password_hash('ligaliga'),
-                    rec_pin='123456', # PIN de recuperación por defecto
-                    is_superuser=True, # ¡Poder absoluto concedido!
+                    rec_pin='123456', 
+                    is_superuser=True, 
+                    rol='Superusuario',
                     datos_adicionales={"Rol": "Superusuario Total"}
                 )
                 db.session.add(nuevo_admin)
-                
-        # Guardamos los cambios
         db.session.commit()
     except OperationalError:
-        # Esto atrapa el error si la columna 'is_superuser' aún no existe
         db.session.rollback()
         print("\n" + "="*60)
         print("[!] AVISO DE MIGRACIÓN PENDIENTE [!]")
-        print("La columna 'is_superuser' aún no existe en la base de datos.")
-        print("Tus contactos están a salvo. Por favor, detén el servidor (Ctrl+C)")
-        print("y ejecuta los siguientes comandos en la terminal en orden:\n")
-        print("  1. Inicializar migraciones (solo si no tienes la carpeta 'migrations'):")
-        print("     flask db init\n")
-        print("  2. Detectar la nueva columna:")
-        print("     flask db migrate -m \"Agregada columna is_superuser para administradores\"\n")
-        print("  3. Aplicar los cambios a tu base de datos de forma segura:")
-        print("     flask db upgrade")
+        print("Ejecuta: flask db migrate -m 'Migración' y luego flask db upgrade")
         print("="*60 + "\n")
+
+# ==================================================
+# INICIADOR AUTOMÁTICO DE TAILSCALE FUNNEL
+# ==================================================
+def iniciar_tailscale():
+    """Lee el archivo JSON de configuración y lanza el Funnel si está activo"""
+    if os.path.exists('tailscale_config.json'):
+        try:
+            with open('tailscale_config.json', 'r') as f:
+                config = json.load(f)
+                
+            if config.get('enable_funnel', False):
+                print("\n" + "="*60)
+                print("[*] INICIANDO TAILSCALE FUNNEL (Ajustes Globales)...")
+                
+                # Ejecuta el comando de Tailscale capturando la salida para diagnosticar problemas
+                # shell=True es crucial en Windows para que reconozca comandos del sistema
+                result = subprocess.run(["tailscale", "funnel", "--bg", "5000"], capture_output=True, text=True, shell=True)
+                
+                # Construye la URL exacta con los datos guardados manualmente
+                device = config.get('tailscale_device_name', 'desktop-7dh07va')
+                domain = config.get('tailnet_domain', 'taileb5c96.ts.net')
+                url = f"https://{device}.{domain}"
+                
+                # Si el comando fue exitoso (código 0)
+                if result.returncode == 0:
+                    print("[+] ¡ÉXITO! Tailscale Funnel configurado en el puerto 5000.")
+                    print(f"[+] ENLACE PÚBLICO ACTIVO: {url}")
+                    if result.stdout:
+                        print(f"[+] Respuesta Tailscale: {result.stdout.strip()}")
+                else:
+                    # Si Tailscale bloquea el túnel, te mostrará la razón exacta aquí
+                    print("[-] ATENCIÓN: Tailscale rechazó la apertura del túnel.")
+                    print(f"[-] Razón del error: {result.stderr.strip() or result.stdout.strip()}")
+                    print("[!] Verifica los 'Access Controls' y 'HTTPS Certificates' en la web de Tailscale.")
+                
+                print("="*60 + "\n")
+        except Exception as e:
+            print(f"[!] Error al leer configuración o iniciar Tailscale: {e}")
 
 if __name__ == '__main__':
     with app.app_context():
-        # create_all() ignorará las tablas que ya existen, manteniendo tus 200 usuarios a salvo
         db.create_all() 
-        # Intenta inyectar a los administradores
         crear_superusuarios() 
+        
+    # Ejecuta el script de Tailscale justo antes de levantar el servidor Flask
+    iniciar_tailscale()
         
     app.run(debug=True, port=5000)

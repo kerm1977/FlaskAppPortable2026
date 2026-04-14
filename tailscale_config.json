@@ -1,0 +1,7 @@
+{
+    "tailscale_device_name": "desktop-7dh07va",
+    "tailnet_domain": "taileb5c96.ts.net",
+    "magic_dns": "100.100.100.100",
+    "global_nameserver": "Local DNS settings",
+    "enable_funnel": true
+}

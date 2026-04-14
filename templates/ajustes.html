@@ -1,0 +1,225 @@
+<!-- templates/ajustes.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center mb-5">
+    <div class="col-md-8">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0 text-warning"><i class="bi bi-gear-fill"></i> Ajustes del Sistema</h2>
+            <a href="{{ url_for('user.admin_dashboard') }}" class="btn btn-secondary glass-btn"><i class="bi bi-arrow-left"></i> Volver a Admin</a>
+        </div>
+
+        <div class="glass-panel">
+            <div class="alert alert-info py-2" style="background: rgba(13, 202, 240, 0.1); border: 1px solid rgba(13, 202, 240, 0.3); color: #fff;">
+                <i class="bi bi-info-circle-fill"></i> Modificar estos ajustes alterará el funcionamiento global de la aplicación.
+            </div>
+
+            <form method="POST">
+                
+                <!-- SECCIÓN 1: GENERAL -->
+                <h5 class="text-info mt-4 mb-3 border-bottom border-secondary pb-2"><i class="bi bi-globe"></i> Configuración General</h5>
+                
+                <div class="mb-3">
+                    <label class="form-label text-white-50">Nombre de la Aplicación</label>
+                    <input type="text" id="site-name-input" name="site_name" class="form-control glass-input" value="GlassApp Portable" required>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-white-50">Correo Electrónico de Contacto (Soporte)</label>
+                    <input type="email" name="support_email" class="form-control glass-input" value="soporte@midominio.com" required>
+                </div>
+
+                <!-- SECCIÓN 2: APARIENCIA GLOBAL -->
+                <h5 class="text-info mt-5 mb-3 border-bottom border-secondary pb-2"><i class="bi bi-palette-fill"></i> Apariencia Global</h5>
+                
+                <!-- Input oculto para enviar el tema al backend al guardar -->
+                <input type="hidden" name="global_theme" id="hidden-theme-input">
+
+                <div class="p-3 mb-4 rounded" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+                    <h6 class="text-white-50 mb-3 text-center">Selecciona el tema por defecto para todos los usuarios</h6>
+                    <div class="d-flex flex-wrap gap-3 justify-content-center" id="theme-selector">
+                        <button type="button" class="btn theme-btn shadow-sm" data-theme="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.2s;" title="Original (Púrpura)"></button>
+                        <button type="button" class="btn theme-btn shadow-sm" data-theme="linear-gradient(135deg, #141e30 0%, #243b55 100%)" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%); width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.2s;" title="Dark Professional"></button>
+                        
+                        <!-- TONOS DARK SÚPER SUAVES -->
+                        <button type="button" class="btn theme-btn shadow-sm" data-theme="linear-gradient(135deg, #16161a 0%, #381d11 100%)" style="background: linear-gradient(135deg, #16161a 0%, #381d11 100%); width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.2s;" title="Dark Subtle Orange"></button>
+                        <button type="button" class="btn theme-btn shadow-sm" data-theme="linear-gradient(135deg, #16161a 0%, #113833 100%)" style="background: linear-gradient(135deg, #16161a 0%, #113833 100%); width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.2s;" title="Dark Subtle Turquoise"></button>
+                        <button type="button" class="btn theme-btn shadow-sm" data-theme="linear-gradient(135deg, #16161a 0%, #381128 100%)" style="background: linear-gradient(135deg, #16161a 0%, #381128 100%); width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.2s;" title="Dark Subtle Pink"></button>
+                        <button type="button" class="btn theme-btn shadow-sm" data-theme="linear-gradient(135deg, #16161a 0%, #383411 100%)" style="background: linear-gradient(135deg, #16161a 0%, #383411 100%); width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.2s;" title="Dark Subtle Yellow"></button>
+                        
+                        <button type="button" class="btn theme-btn shadow-sm" data-theme="linear-gradient(135deg, #09203f 0%, #537895 100%)" style="background: linear-gradient(135deg, #09203f 0%, #537895 100%); width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.2s;" title="Midnight City"></button>
+                        <button type="button" class="btn theme-btn shadow-sm" data-theme="linear-gradient(135deg, #30cfd0 0%, #330867 100%)" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); width: 45px; height: 45px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.2s;" title="Cyberpunk Neon"></button>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 3: CONTROL DE ACCESO -->
+                <h5 class="text-info mt-5 mb-3 border-bottom border-secondary pb-2"><i class="bi bi-door-open"></i> Control de Acceso y Estado</h5>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3 p-3" style="background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <div>
+                        <h6 class="mb-1">Modo Mantenimiento</h6>
+                        <small class="text-white-50">Cierra el acceso a usuarios regulares. Solo Superusuarios podrán entrar.</small>
+                    </div>
+                    <div class="form-check form-switch fs-4">
+                        <input class="form-check-input" type="checkbox" name="maintenance_mode">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4 p-3" style="background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <div>
+                        <h6 class="mb-1">Permitir Nuevos Registros</h6>
+                        <small class="text-white-50">Desactiva esta opción si quieres que la aplicación sea privada/por invitación.</small>
+                    </div>
+                    <div class="form-check form-switch fs-4">
+                        <input class="form-check-input" type="checkbox" name="allow_registrations" checked>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 4: TAILSCALE & MAGICDNS -->
+                <h5 class="text-info mt-5 mb-3 border-bottom border-secondary pb-2"><i class="bi bi-router-fill"></i> Configuración Tailscale & MagicDNS</h5>
+                
+                <div class="glass-panel p-4 mb-4" style="background: rgba(0,0,0,0.15);">
+                    <p class="small text-white-50 mb-4"><i class="bi bi-info-circle"></i> Configura los nameservers utilizados por los dispositivos en tu red para resolver consultas DNS mediante Tailscale Funnel.</p>
+                    
+                    <!-- CAMPO 100% MANUAL: Nombre del dispositivo -->
+                    <div class="mb-3">
+                        <label class="form-label text-white-50">Nombre del Dispositivo (Tailscale)</label>
+                        <div class="input-group">
+                            <span class="input-group-text glass-panel py-0 border-end-0"><i class="bi bi-pc-display text-white"></i></span>
+                            <input type="text" id="ts-device-input" name="tailscale_device_name" class="form-control glass-input" value="{{ session.get('tailscale_device_name', '') }}" placeholder="ej: desktop-7dh07va" required>
+                        </div>
+                        <small class="text-white-50" style="font-size: 0.75rem;">Escribe exactamente el nombre que te asignó Tailscale en tu panel de control.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-white-50">Cuenta / Nameserver (MagicDNS)</label>
+                        <div class="input-group">
+                            <span class="input-group-text glass-panel py-0 border-end-0"><i class="bi bi-cloud-fill text-white"></i></span>
+                            <input type="text" id="ts-domain-input" name="tailnet_domain" class="form-control glass-input" value="{{ session.get('tailnet_domain', 'taileb5c96.ts.net') }}" placeholder="ej: taileb5c96.ts.net" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-white-50">IPv4 MagicDNS</label>
+                        <div class="input-group">
+                            <span class="input-group-text glass-panel py-0 border-end-0"><i class="bi bi-hdd-network-fill text-white"></i></span>
+                            <input type="text" name="magic_dns" class="form-control glass-input" value="{{ session.get('magic_dns', '100.100.100.100') }}" placeholder="100.100.100.100" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-white-50">Global nameservers</label>
+                        <select name="global_nameserver" class="form-select glass-input">
+                            <option value="Local DNS settings" {% if session.get('global_nameserver', 'Local DNS settings') == 'Local DNS settings' %}selected{% endif %}>Local DNS settings</option>
+                            <option value="8.8.8.8" {% if session.get('global_nameserver') == '8.8.8.8' %}selected{% endif %}>Google Public DNS (8.8.8.8)</option>
+                            <option value="1.1.1.1" {% if session.get('global_nameserver') == '1.1.1.1' %}selected{% endif %}>Cloudflare Public DNS (1.1.1.1)</option>
+                            <option value="9.9.9.9" {% if session.get('global_nameserver') == '9.9.9.9' %}selected{% endif %}>Quad9 Public DNS (9.9.9.9)</option>
+                            <option value="194.242.2.2" {% if session.get('global_nameserver') == '194.242.2.2' %}selected{% endif %}>Mullvad Public DNS (194.242.2.2)</option>
+                            <option value="NextDNS" {% if session.get('global_nameserver') == 'NextDNS' %}selected{% endif %}>NextDNS (DoH)</option>
+                            <option value="Control D" {% if session.get('global_nameserver') == 'Control D' %}selected{% endif %}>Control D (DoH)</option>
+                            <option value="Custom" {% if session.get('global_nameserver') == 'Custom' %}selected{% endif %}>Custom...</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center p-3" style="background: rgba(255,255,255,0.05); border-radius: 10px;">
+                        <div>
+                            <h6 class="mb-1 text-warning">Habilitar Tailscale Funnel</h6>
+                            <small class="text-white-50">Expone tu servidor local de forma segura a Internet.</small>
+                        </div>
+                        <div class="form-check form-switch fs-4">
+                            <input class="form-check-input bg-warning border-warning" type="checkbox" name="enable_tailscale_funnel" {% if session.get('enable_tailscale_funnel') %}checked{% endif %}>
+                        </div>
+                    </div>
+
+                    {% if session.get('enable_tailscale_funnel') %}
+                    <div class="mt-3 p-3 text-center rounded" style="background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.2);">
+                        <p class="small text-white-50 mb-2">Tu enlace público actual (MagicDNS):</p>
+                        <div class="d-flex justify-content-center align-items-center gap-2">
+                            <i class="bi bi-link-45deg text-info fs-4"></i>
+                            <span class="text-info fw-bold fs-6" id="ts-preview-url">https://{{ session.get('tailscale_device_name', '[tu-maquina]') }}.{{ session.get('tailnet_domain', 'taileb5c96.ts.net') }}</span>
+                        </div>
+                        <p class="small text-success mt-2 mb-0"><i class="bi bi-check-circle-fill"></i> Se activará automáticamente al arrancar <code class="text-warning">python app.py</code></p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <hr class="bg-white my-4" style="opacity: 0.2;">
+
+                <button type="submit" class="btn btn-success glass-btn w-100 py-2 fs-5">
+                    <i class="bi bi-save2-fill"></i> Guardar Ajustes Globales
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const siteNameInput = document.getElementById('site-name-input');
+        if(siteNameInput) {
+            siteNameInput.addEventListener('input', function() {
+                const newTitle = this.value.trim() || 'GlassApp Portable';
+                document.title = newTitle;
+                const navbarBrand = document.querySelector('.navbar-brand');
+                if(navbarBrand) navbarBrand.textContent = newTitle;
+            });
+        }
+
+        const tsDeviceInput = document.getElementById('ts-device-input');
+        const tsDomainInput = document.getElementById('ts-domain-input');
+        const tsPreviewUrl = document.getElementById('ts-preview-url');
+
+        function updateTsPreview() {
+            if(tsPreviewUrl && tsDeviceInput && tsDomainInput) {
+                const dev = tsDeviceInput.value.trim() || '[tu-maquina]';
+                const dom = tsDomainInput.value.trim() || 'taileb5c96.ts.net';
+                tsPreviewUrl.textContent = `https://${dev}.${dom}`;
+            }
+        }
+
+        if(tsDeviceInput) tsDeviceInput.addEventListener('input', updateTsPreview);
+        if(tsDomainInput) tsDomainInput.addEventListener('input', updateTsPreview);
+
+
+        const themeBtns = document.querySelectorAll('.theme-btn');
+        const hiddenThemeInput = document.getElementById('hidden-theme-input');
+        const currentTheme = localStorage.getItem('glass-theme') || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        
+        document.body.style.backgroundImage = currentTheme;
+        document.body.style.backgroundAttachment = "fixed";
+        if(hiddenThemeInput) hiddenThemeInput.value = currentTheme;
+        
+        themeBtns.forEach(btn => {
+            if(btn.getAttribute('data-theme') === currentTheme) {
+                btn.style.borderColor = 'white';
+                btn.style.transform = 'scale(1.1)';
+            }
+            
+            btn.addEventListener('mouseenter', () => btn.style.transform = 'scale(1.1)');
+            btn.addEventListener('mouseleave', function() {
+                if (this.style.borderColor !== 'white') this.style.transform = 'scale(1)';
+            });
+
+            btn.addEventListener('click', function(e) {
+                e.preventDefault(); 
+                const selectedTheme = this.getAttribute('data-theme');
+                
+                document.body.style.backgroundImage = selectedTheme;
+                document.body.style.backgroundAttachment = "fixed";
+                
+                localStorage.setItem('glass-theme', selectedTheme);
+                if(hiddenThemeInput) hiddenThemeInput.value = selectedTheme;
+                
+                themeBtns.forEach(b => {
+                    b.style.borderColor = 'transparent';
+                    b.style.transform = 'scale(1)';
+                });
+                this.style.borderColor = 'white';
+                this.style.transform = 'scale(1.1)';
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -6,6 +6,7 @@ from db import db
 from models import User
 import json
 import io
+import os
 import time
 from cryptography.fernet import Fernet
 
@@ -466,9 +467,30 @@ def ajustes_sitio():
         return redirect(url_for('routes.home'))
         
     if request.method == 'POST':
-        # Aquí recolectaremos los ajustes (Mantenimiento, Nombre del sitio, etc.)
-        # Por ahora simulamos que se guardaron exitosamente:
-        flash('Ajustes del sitio actualizados correctamente.', 'success')
+        # 1. Atrapamos TODOS los datos manualmente y los guardamos en la sesión
+        session['tailscale_device_name'] = request.form.get('tailscale_device_name', '')
+        session['tailnet_domain'] = request.form.get('tailnet_domain', 'taileb5c96.ts.net')
+        session['magic_dns'] = request.form.get('magic_dns', '100.100.100.100')
+        session['global_nameserver'] = request.form.get('global_nameserver', 'Local DNS settings')
+        enable_funnel = request.form.get('enable_tailscale_funnel') == 'on'
+        session['enable_tailscale_funnel'] = enable_funnel
+        
+        # 2. Guardar en JSON para que app.py pueda leerlo al arrancar el servidor
+        config_data = {
+            "tailscale_device_name": session['tailscale_device_name'],
+            "tailnet_domain": session['tailnet_domain'],
+            "magic_dns": session['magic_dns'],
+            "global_nameserver": session['global_nameserver'],
+            "enable_funnel": enable_funnel
+        }
+        
+        try:
+            with open('tailscale_config.json', 'w') as f:
+                json.dump(config_data, f, indent=4)
+        except Exception as e:
+            print(f"Error guardando tailscale_config.json: {e}")
+            
+        flash('Ajustes del sitio y configuración de Tailscale actualizados correctamente.', 'success')
         return redirect(url_for('user.ajustes_sitio'))
         
     return render_template('ajustes.html')
