@@ -3,131 +3,356 @@
 
 {% block content %}
 <style>
-    /* Estilos para la paginación glassmorphic */
-    .pagination-glass .page-link {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: #fff;
-        backdrop-filter: blur(10px);
-        margin: 0 3px;
-        border-radius: 8px;
-        transition: all 0.3s;
-    }
-    .pagination-glass .page-link:hover {
-        background: rgba(255, 255, 255, 0.3);
-        color: #fff;
-    }
-    .pagination-glass .page-item.active .page-link {
-        background: #4ade80;
-        border-color: #4ade80;
-        color: #1a1a1a;
-        font-weight: bold;
-    }
-    .pagination-glass .page-item.disabled .page-link {
-        color: rgba(255, 255, 255, 0.4);
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.1);
-    }
+    .pagination-glass .page-link { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; backdrop-filter: blur(10px); margin: 0 3px; border-radius: 8px; transition: all 0.3s; }
+    .pagination-glass .page-link:hover { background: rgba(255, 255, 255, 0.3); color: #fff; }
+    .pagination-glass .page-item.active .page-link { background: #4ade80; border-color: #4ade80; color: #1a1a1a; font-weight: bold; }
+    .pagination-glass .page-item.disabled .page-link { color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+    .nav-pills .nav-link { border-radius: 10px; transition: all 0.3s; color: #fff; }
+    .nav-pills .nav-link.active { background-color: #4ade80 !important; color: #1a1a1a !important; font-weight: bold; }
+    
+    /* Z-Index para que los modales fluyan y no se bloqueen */
+    .modal { z-index: 1070 !important; }
+    .modal-backdrop { z-index: 1060 !important; }
 </style>
 
 <div class="row justify-content-center mb-5">
     <div class="col-md-10">
         
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-            <h2 class="mb-0 text-warning"><i class="bi bi-bell-fill"></i> Notificaciones</h2>
-            
-            <div class="d-flex gap-2 flex-wrap">
-                <!-- Formulario Oculto para Importar JSON -->
-                <form action="{{ url_for('notif.importar_notificaciones') }}" method="POST" enctype="multipart/form-data" class="d-none" id="import-form">
-                    <input type="file" id="import-json" name="json_file" accept=".json" onchange="document.getElementById('import-form').submit();">
-                </form>
+            <h2 class="mb-0 text-warning"><i class="bi bi-bell-fill"></i> Central de Notificaciones</h2>
+        </div>
 
-                <!-- Botones de Acción Global -->
-                <button type="button" class="btn btn-sm btn-outline-info glass-btn" onclick="document.getElementById('import-json').click();">
-                    <i class="bi bi-upload"></i> Importar JSON
+        {% if current_user.is_superuser %}
+        <ul class="nav nav-pills nav-fill mb-4 glass-panel p-2" id="notifTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#comunicados-tab" type="button" role="tab">
+                    <i class="bi bi-megaphone-fill"></i> Popups y Comunicados
                 </button>
-                <a href="{{ url_for('notif.exportar_notificaciones') }}" class="btn btn-sm btn-outline-success glass-btn">
-                    <i class="bi bi-download"></i> Exportar JSON
-                </a>
-                <form action="{{ url_for('notif.limpiar_notificaciones') }}" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-sm btn-outline-danger glass-btn"><i class="bi bi-trash-fill"></i> Limpiar Todas</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#alertas-tab" type="button" role="tab">
+                    <i class="bi bi-shield-exclamation"></i> Alertas del Sistema
+                </button>
+            </li>
+        </ul>
+        {% else %}
+        <div class="alert alert-info glass-panel py-2 mb-4 text-center">
+            <i class="bi bi-envelope-open-fill"></i> Esta es tu bandeja personal de comunicados.
+        </div>
+        {% endif %}
+
+        <div class="tab-content">
+            <!-- PESTAÑA 1: COMUNICADOS -->
+            <div class="tab-pane fade show active" id="comunicados-tab" role="tabpanel">
+                
+                {% if current_user.is_superuser %}
+                <div class="text-end mb-3">
+                    <button class="btn btn-success glass-btn" data-bs-toggle="modal" data-bs-target="#modalCrearComunicado">
+                        <i class="bi bi-plus-circle"></i> Redactar Nuevo Comunicado
+                    </button>
+                </div>
+                {% endif %}
+                
+                <div class="glass-panel p-0 overflow-hidden">
+                    {% if comunicados %}
+                        <ul class="list-group list-group-flush">
+                        {% for c in comunicados %}
+                            <li class="list-group-item bg-transparent text-white border-bottom border-secondary p-3 p-md-4">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                    <div class="w-100 w-md-auto" style="flex: 1;">
+                                        <h5 class="mb-1 text-info fw-bold">{{ c.titulo }}</h5>
+                                        {% if current_user.is_superuser %}
+                                        <div class="small text-white-50">
+                                            <i class="bi bi-broadcast"></i> Destino: <strong class="text-white">{{ c.target_type | upper }}</strong> 
+                                            {% if c.target_value %}(<span style="display:inline-block; max-width:200px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; vertical-align:bottom;">{{ c.target_value }}</span>){% endif %} <br>
+                                            <i class="bi bi-clock"></i> Programado: {{ c.scheduled_for.strftime('%d/%m/%Y %H:%M') }}
+                                        </div>
+                                        {% else %}
+                                        <p class="mb-0 text-white-50" style="font-size: 0.9rem;">{{ c.mensaje }}</p>
+                                        <small class="text-white-50 mt-2 d-block"><i class="bi bi-clock"></i> Recibido: {{ c.scheduled_for.strftime('%d/%m/%Y') }}</small>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if current_user.is_superuser %}
+                                    <div class="d-flex flex-wrap gap-2 justify-content-end">
+                                        {% set acuses_vistos = c.receipts|length %}
+                                        <button class="btn btn-sm btn-outline-success glass-btn position-relative btn-acuses" data-bs-toggle="modal" data-bs-target="#modalAcuses{{ c.id }}" title="Ver seguimiento" data-id="{{ c.id }}" data-count="{{ acuses_vistos }}">
+                                            <i class="bi bi-eye"></i> Acuses
+                                            {% if acuses_vistos > 0 %}<span id="badge-acuses-{{ c.id }}" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info text-dark" style="font-size: 0.65rem;">{{ acuses_vistos }}</span>{% endif %}
+                                        </button>
+                                        <button class="btn btn-sm btn-warning glass-btn" data-bs-toggle="modal" data-bs-target="#modalEditar{{ c.id }}" title="Editar"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-sm btn-danger glass-btn" onclick="confirmDelete('{{ url_for('notif.eliminar_comunicado', id=c.id) }}')" title="Eliminar"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="p-5 text-center text-white-50">
+                            <i class="bi bi-megaphone fs-1 mb-3 d-block opacity-50"></i>
+                            <h5>Sin Comunicados</h5>
+                            <p class="mb-0 small">{% if current_user.is_superuser %}Crea popups para notificar eventos importantes.{% else %}Aún no tienes mensajes en tu bandeja.{% endif %}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- PESTAÑA 2: ALERTAS (LOGS) -->
+            {% if current_user.is_superuser %}
+            <div class="tab-pane fade" id="alertas-tab" role="tabpanel">
+                <div class="d-flex justify-content-end mb-3 gap-2 flex-wrap">
+                    <form action="{{ url_for('notif.importar_notificaciones') }}" method="POST" enctype="multipart/form-data" class="d-none" id="import-form"><input type="file" id="import-json" name="json_file" accept=".json" onchange="document.getElementById('import-form').submit();"></form>
+                    <button type="button" class="btn btn-sm btn-outline-info glass-btn" onclick="document.getElementById('import-json').click();"><i class="bi bi-upload"></i> Importar</button>
+                    <a href="{{ url_for('notif.exportar_notificaciones') }}" class="btn btn-sm btn-outline-success glass-btn"><i class="bi bi-download"></i> Exportar</a>
+                    <form action="{{ url_for('notif.limpiar_notificaciones') }}" method="POST" class="d-inline"><button type="submit" class="btn btn-sm btn-outline-danger glass-btn"><i class="bi bi-trash-fill"></i> Limpiar</button></form>
+                </div>
+
+                <div class="glass-panel p-0 overflow-hidden">
+                    {% if notificaciones and notificaciones.items %}
+                        <ul class="list-group list-group-flush">
+                        {% for n in notificaciones.items %}
+                            <li class="list-group-item bg-transparent text-white border-bottom border-secondary p-3 {% if not n.leida %}bg-dark bg-opacity-25{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <!-- CORRECCIÓN DE ICONO: Cierre de etiqueta ">" añadido para evitar errores visuales -->
+                                        <i class="bi fs-4 {% if n.tipo == 'success' %}bi-check-circle-fill text-success{% elif n.tipo == 'danger' %}bi-x-octagon-fill text-danger{% elif n.tipo == 'warning' %}bi-exclamation-triangle-fill text-warning{% else %}bi-info-circle-fill text-info{% endif %}"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                            <h6 class="mb-0 text-white pe-2 lh-base small">{{ n.mensaje }}</h6>
+                                            <div class="d-flex align-items-center gap-3 mt-1 mt-sm-0">
+                                                <small class="text-white-50 text-nowrap" style="font-size: 0.7rem;"><i class="bi bi-clock"></i> {{ n.fecha.strftime('%d/%m %H:%M') }}</small>
+                                                <button type="button" class="btn btn-sm btn-danger glass-btn py-0 px-2" onclick="confirmDelete('{{ url_for('notif.eliminar_notificacion', id=n.id) }}')"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                        
+                        <!-- PAGINACIÓN -->
+                        {% if notificaciones.pages > 1 %}
+                        <div class="p-3 border-top border-secondary">
+                            <nav aria-label="Navegación">
+                                <ul class="pagination pagination-glass justify-content-center mb-0">
+                                    <li class="page-item {% if not notificaciones.has_prev %}disabled{% endif %}">
+                                        <a class="page-link" href="{{ url_for('notif.notificaciones', page=notificaciones.prev_num) if notificaciones.has_prev else '#' }}">Ant.</a>
+                                    </li>
+                                    {% for p in notificaciones.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                        {% if p %}<li class="page-item {% if p == notificaciones.page %}active{% endif %}"><a class="page-link" href="{{ url_for('notif.notificaciones', page=p) }}">{{ p }}</a></li>
+                                        {% else %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+                                    {% endfor %}
+                                    <li class="page-item {% if not notificaciones.has_next %}disabled{% endif %}">
+                                        <a class="page-link" href="{{ url_for('notif.notificaciones', page=notificaciones.next_num) if notificaciones.has_next else '#' }}">Sig.</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="p-5 text-center text-white-50"><h5 class="text-white-50">Sin alertas de sistema</h5></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_superuser %}
+<!-- MODALES FUERA DEL BUCLE PARA EVITAR CONGELAMIENTO DE INTERFAZ -->
+{% for c in comunicados %}
+    <!-- Modal Editar -->
+    <div class="modal fade glass-modal" id="modalEditar{{ c.id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <form action="{{ url_for('notif.editar_comunicado', id=c.id) }}" method="POST">
+                    <div class="modal-header border-0"><h5 class="modal-title">Editar Comunicado</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body border-0">
+                        <input type="text" name="titulo" class="form-control glass-input mb-3" value="{{ c.titulo }}" required>
+                        <textarea name="mensaje" class="form-control glass-input mb-3" rows="4" required>{{ c.mensaje }}</textarea>
+                        
+                        <label class="small text-white-50">Dirigido a:</label>
+                        <select name="target_type" class="form-select glass-input mb-3" onchange="toggleEditTarget(this, 'edit_target_{{ c.id }}')">
+                            <option value="all" {% if c.target_type == 'all' %}selected{% endif %}>Todos los usuarios</option>
+                            <option value="grupo" {% if c.target_type == 'grupo' %}selected{% endif %}>Grupo Específico</option>
+                            <option value="individual" {% if c.target_type == 'individual' %}selected{% endif %}>Correos Individuales</option>
+                        </select>
+                        <input type="text" name="target_value" id="edit_target_{{ c.id }}" class="form-control glass-input mb-3" value="{{ c.target_value or '' }}" style="display: {% if c.target_type == 'all' %}none{% else %}block{% endif %};">
+                        
+                        <label class="small text-white-50">Programar:</label>
+                        <input type="datetime-local" name="scheduled_for" class="form-control glass-input" value="{{ c.scheduled_for.strftime('%Y-%m-%dT%H:%M') }}">
+                    </div>
+                    <div class="modal-footer border-0"><button type="submit" class="btn btn-warning glass-btn w-100">Guardar Cambios</button></div>
                 </form>
             </div>
         </div>
+    </div>
 
-        <div class="glass-panel p-0 overflow-hidden">
-            {% if notificaciones.items %}
-                <ul class="list-group list-group-flush">
-                {% for n in notificaciones.items %}
-                    <!-- Las notificaciones NO LEÍDAS tendrán un leve fondo oscuro diferente para resaltar -->
-                    <li class="list-group-item bg-transparent text-white border-bottom border-secondary p-3 {% if not n.leida %}bg-dark bg-opacity-25{% endif %}">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <!-- Coloreado de Iconos de Alerta -->
-                                {% if n.tipo == 'success' %}
-                                    <i class="bi bi-check-circle-fill fs-4 text-success"></i>
-                                {% elif n.tipo == 'danger' %}
-                                    <i class="bi bi-x-octagon-fill fs-4 text-danger"></i>
-                                {% elif n.tipo == 'warning' %}
-                                    <i class="bi bi-exclamation-triangle-fill fs-4 text-warning"></i>
-                                {% else %}
-                                    <i class="bi bi-info-circle-fill fs-4 text-info"></i>
-                                {% endif %}
+    <!-- Modal Acuses -->
+    <div class="modal fade glass-modal" id="modalAcuses{{ c.id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-0"><h5 class="modal-title"><i class="bi bi-eye"></i> Acuses: {{ c.titulo }}</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body border-0 p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for r in c.receipts %}
+                        <li class="list-group-item bg-transparent text-white border-bottom border-secondary d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <strong class="d-block">{{ r.user.nombre }} {{ r.user.primer_apellido }}</strong>
+                                <small class="text-white-50">{{ r.user.email }}</small>
                             </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between w-100 align-items-center flex-wrap">
-                                    <h6 class="mb-1 text-white pe-2 lh-base m-0">{{ n.mensaje }}</h6>
-                                    <div class="d-flex align-items-center gap-3 mt-1 mt-sm-0">
-                                        <small class="text-white-50 text-nowrap"><i class="bi bi-clock"></i> {{ n.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
-                                        
-                                        <!-- Botón para eliminar notificación individual llamando al modal de 3 pasos -->
-                                        <button type="button" class="btn btn-sm btn-danger glass-btn py-0 px-2" title="Eliminar alerta" onclick="confirmDelete('{{ url_for('notif.eliminar_notificacion', id=n.id) }}')">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                            <div class="text-end">
+                                <span class="badge {% if r.no_mostrar %}bg-success text-dark{% else %}bg-info text-dark{% endif %} d-block mb-1">
+                                    {% if r.no_mostrar %}ENTENDIDO{% else %}VISTO{% endif %}
+                                </span>
+                                <small style="font-size: 0.65rem;" class="text-white-50">{{ r.leido_en.strftime('%d/%m %H:%M') }}</small>
                             </div>
-                        </div>
-                    </li>
-                {% endfor %}
-                </ul>
-                
-                <!-- PAGINACIÓN -->
-                {% if notificaciones.pages > 1 %}
-                <div class="p-3 border-top border-secondary">
-                    <nav aria-label="Navegación de notificaciones">
-                        <ul class="pagination pagination-glass justify-content-center mb-0">
-                            <li class="page-item {% if not notificaciones.has_prev %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('notif.notificaciones', page=notificaciones.prev_num) if notificaciones.has_prev else '#' }}">Anterior</a>
-                            </li>
-                            
-                            {% for p in notificaciones.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                                {% if p %}
-                                    <li class="page-item {% if p == notificaciones.page %}active{% endif %}">
-                                        <a class="page-link" href="{{ url_for('notif.notificaciones', page=p) }}">{{ p }}</a>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                                {% endif %}
-                            {% endfor %}
-                            
-                            <li class="page-item {% if not notificaciones.has_next %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('notif.notificaciones', page=notificaciones.next_num) if notificaciones.has_next else '#' }}">Siguiente</a>
-                            </li>
-                        </ul>
-                    </nav>
+                        </li>
+                        {% else %}
+                        <div class="text-center p-5 text-white-50 small">Nadie ha interactuado aún.</div>
+                        {% endfor %}
+                    </ul>
                 </div>
-                {% endif %}
-
-            {% else %}
-                <div class="p-5 text-center text-white-50">
-                    <i class="bi bi-bell-slash fs-1 mb-3 d-block text-white-50 opacity-50"></i>
-                    <h5 class="text-white-50">Todo en orden</h5>
-                    <p class="mb-0 small">El sistema te avisará cuando detecte cambios importantes o usuarios nuevos.</p>
-                </div>
-            {% endif %}
+            </div>
         </div>
+    </div>
+{% endfor %}
 
+<!-- Modal Crear Comunicado -->
+<div class="modal fade glass-modal" id="modalCrearComunicado" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="formCrearComunicado" action="{{ url_for('notif.crear_comunicado') }}" method="POST">
+                <div class="modal-header border-0"><h5 class="modal-title text-success"><i class="bi bi-plus-circle"></i> Nuevo Popup</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body border-0">
+                    <input type="text" name="titulo" class="form-control glass-input mb-3" placeholder="Título impactante" required>
+                    <textarea name="mensaje" class="form-control glass-input mb-3" rows="4" placeholder="Mensaje..." required></textarea>
+                    
+                    <label class="small text-white-50 fw-bold">Público Destino:</label>
+                    <select name="target_type" class="form-select glass-input mb-3" onchange="toggleTargetValue(this, 'create_target_grupo', 'create_target_indiv')">
+                        <option value="all">Todos los usuarios</option>
+                        <option value="grupo">Grupo Específico</option>
+                        <option value="individual">Usuarios Seleccionados (Buscador)</option>
+                    </select>
+                    
+                    <input type="text" name="target_value_grupo" id="create_target_grupo" class="form-control glass-input mb-3" placeholder="Ej: Staff" style="display:none;">
+                    
+                    <div id="create_target_indiv" style="display:none;" class="mb-3">
+                        <div class="input-group mb-2">
+                            <span class="input-group-text glass-panel py-0 border-end-0"><i class="bi bi-search text-white"></i></span>
+                            <input type="text" id="user_search_input" class="form-control glass-input" placeholder="Escribe y haz clic para añadir...">
+                        </div>
+                        <div id="search_results" class="list-group mb-2 shadow" style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.4);"></div>
+                        <div id="selected_users_container" class="p-2 glass-panel border border-success mt-3" style="display:none;">
+                            <p class="small text-success mb-2 fw-bold">Seleccionados:</p>
+                            <div id="selected_users_list"></div>
+                        </div>
+                        <input type="hidden" name="target_value_individual" id="target_value_individual">
+                    </div>
+                    
+                    <label class="small text-white-50 fw-bold">Programar Aparición:</label>
+                    <input type="datetime-local" name="scheduled_for" class="form-control glass-input">
+                </div>
+                <div class="modal-footer border-0"><button type="submit" class="btn btn-success glass-btn w-100">Crear Alerta</button></div>
+            </form>
+        </div>
     </div>
 </div>
+
+<script>
+    function toggleEditTarget(select, targetId) {
+        document.getElementById(targetId).style.display = (select.value === 'all') ? 'none' : 'block';
+    }
+
+    function toggleTargetValue(select, groupInputId, indivContainerId) {
+        document.getElementById(groupInputId).style.display = (select.value === 'grupo') ? 'block' : 'none';
+        document.getElementById(indivContainerId).style.display = (select.value === 'individual') ? 'block' : 'none';
+    }
+
+    let selectedEmails = [];
+    const searchInput = document.getElementById('user_search_input');
+    if(searchInput) {
+        searchInput.addEventListener('keydown', e => { if(e.key === 'Enter') e.preventDefault(); });
+        searchInput.addEventListener('input', function(e) {
+            const q = e.target.value.trim();
+            const resultsDiv = document.getElementById('search_results');
+            if (q.length < 2) { resultsDiv.innerHTML = ''; return; }
+            fetch(`{{ url_for('notif.buscar_usuarios_ajax') }}?q=${encodeURIComponent(q)}`)
+                .then(res => res.json())
+                .then(data => {
+                    resultsDiv.innerHTML = '';
+                    data.forEach(user => {
+                        const div = document.createElement('a');
+                        div.className = 'list-group-item list-group-item-action bg-transparent text-white border-secondary py-2 small';
+                        div.innerHTML = `<strong>${user.nombre_completo}</strong> <span class="text-info">(${user.email})</span>`;
+                        div.onclick = () => { addUserToSelection(user.email); resultsDiv.innerHTML = ''; e.target.value = ''; };
+                        resultsDiv.appendChild(div);
+                    });
+                });
+        });
+    }
+
+    function addUserToSelection(email) {
+        if (!selectedEmails.includes(email)) { selectedEmails.push(email); updateSelectionUI(); }
+    }
+    function removeUserFromSelection(email) {
+        selectedEmails = selectedEmails.filter(e => e !== email); updateSelectionUI();
+    }
+    function updateSelectionUI() {
+        const container = document.getElementById('selected_users_container');
+        const list = document.getElementById('selected_users_list');
+        const hidden = document.getElementById('target_value_individual');
+        list.innerHTML = '';
+        if (selectedEmails.length > 0) {
+            container.style.display = 'block';
+            selectedEmails.forEach(email => {
+                const b = document.createElement('span'); b.className = 'badge bg-success me-2 mb-2 p-2';
+                b.innerHTML = `${email} <i class="bi bi-x-circle ms-1" style="cursor:pointer;" onclick="removeUserFromSelection('${email}')"></i>`;
+                list.appendChild(b);
+            });
+        } else { container.style.display = 'none'; }
+        hidden.value = selectedEmails.join(',');
+    }
+    
+    const formCrear = document.getElementById('formCrearComunicado');
+    if (formCrear) {
+        formCrear.onsubmit = e => {
+            if(document.querySelector('select[name="target_type"]').value === 'individual' && selectedEmails.length === 0) {
+                e.preventDefault(); alert("¡Atención! Selecciona al menos un usuario.");
+            }
+        };
+    }
+
+    // ==========================================
+    // LÓGICA DE OCULTAMIENTO INTELIGENTE DE BADGES DE ACUSES
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        const acusesBtns = document.querySelectorAll('.btn-acuses');
+        acusesBtns.forEach(btn => {
+            const id = btn.getAttribute('data-id');
+            const currentCount = parseInt(btn.getAttribute('data-count') || '0');
+            
+            // Buscar si ya habíamos guardado este número en la memoria del navegador
+            const storedCount = parseInt(localStorage.getItem('acuses_seen_' + id) || '0');
+            const badge = document.getElementById('badge-acuses-' + id);
+            
+            // Si el número de acuses actuales es igual (o menor) al que ya vimos antes, lo ocultamos.
+            if (badge && storedCount >= currentCount) {
+                badge.style.display = 'none';
+            }
+
+            // Al hacer clic en el botón (abrir el modal de acuses), actualizamos la memoria local y lo escondemos
+            btn.addEventListener('click', function() {
+                localStorage.setItem('acuses_seen_' + id, currentCount);
+                if (badge) {
+                    badge.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endif %}
 {% endblock %}

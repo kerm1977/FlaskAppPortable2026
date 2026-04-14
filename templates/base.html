@@ -192,18 +192,17 @@
     <nav class="navbar navbar-expand-lg navbar-dark glass-navbar mb-4">
         <div class="container">
             <!-- AQUÍ AGREGAMOS EL ID global-brand-name PARA PODER MODIFICARLO EN VIVO -->
-            <a class="navbar-brand" id="global-brand-name" href="#">GlassApp</a>
+            <a class="navbar-brand fw-bold" id="global-brand-name" href="{{ url_for('routes.home') }}">GlassApp</a>
             
             {% if current_user.is_authenticated %}
             <div class="d-flex text-white align-items-center">
                 <!-- Mostramos solo el nombre, convertido a enlace interactivo hacia el perfil -->
-                <a href="{{ url_for('user.perfil') }}" class="text-white text-decoration-none me-2 me-sm-3 profile-link-nav" title="Ir a mi perfil">
+                <a href="{{ url_for('user.perfil') }}" class="text-white text-decoration-none me-2 me-sm-3 profile-link-nav" title="Ir a mi perfil" data-bs-toggle="tooltip">
                     {{ current_user.nombre }}
                 </a>
 
-                <!-- CAMPANITA NOTIFICACIONES SUPERADMIN (Desktop) -->
-                {% if current_user.is_superuser %}
-                <a href="{{ url_for('notif.notificaciones') }}" class="text-white text-decoration-none me-3 position-relative profile-link-nav" title="Notificaciones del Sistema">
+                <!-- CAMPANITA NOTIFICACIONES (Visible para todos los usuarios) -->
+                <a href="{{ url_for('notif.notificaciones') }}" class="text-white text-decoration-none me-3 position-relative profile-link-nav" title="Notificaciones" data-bs-toggle="tooltip">
                     <i class="bi bi-bell-fill fs-5"></i>
                     {% if unread_notifs and unread_notifs > 0 %}
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55rem; padding: 0.25em 0.4em;">
@@ -211,10 +210,9 @@
                     </span>
                     {% endif %}
                 </a>
-                {% endif %}
                 
                 <!-- Botón de Logout Responsivo -->
-                <a href="{{ url_for('user.logout') }}" class="btn btn-sm glass-btn nav-logout-btn" title="Cerrar Sesión">
+                <a href="{{ url_for('user.logout') }}" class="btn btn-sm glass-btn nav-logout-btn" title="Cerrar Sesión" data-bs-toggle="tooltip">
                     <span class="d-none d-md-inline">Cerrar Sesión</span>
                     <i class="bi bi-box-arrow-right d-inline d-md-none"></i>
                 </a>
@@ -253,25 +251,22 @@
     <!-- Barra Inferior Móvil -->
     <div class="mobile-bottom-bar">
         {% if current_user.is_authenticated %}
-            <a href="{{ url_for('routes.home') }}" class="mobile-icon"><i class="bi bi-house"></i></a>
-            <a href="{{ url_for('user.perfil') }}" class="mobile-icon"><i class="bi bi-person"></i></a>
+            <a href="{{ url_for('routes.home') }}" class="mobile-icon" title="Inicio" data-bs-toggle="tooltip"><i class="bi bi-house"></i></a>
+            <a href="{{ url_for('user.perfil') }}" class="mobile-icon" title="Perfil" data-bs-toggle="tooltip"><i class="bi bi-person"></i></a>
             
             {% if current_user.is_superuser %}
-            <a href="{{ url_for('user.ajustes_sitio') }}" class="mobile-icon" title="Ajustes del Sitio"><i class="bi bi-gear"></i></a>
+            <a href="{{ url_for('user.ajustes_sitio') }}" class="mobile-icon" title="Ajustes del Sitio" data-bs-toggle="tooltip"><i class="bi bi-gear"></i></a>
+            {% endif %}
             
-            <!-- CAMPANITA MÓVIL SUPERADMIN -->
-            <a href="{{ url_for('notif.notificaciones') }}" class="mobile-icon position-relative" title="Notificaciones">
+            <!-- CAMPANITA MÓVIL: Ahora habilitada para TODOS los usuarios -->
+            <a href="{{ url_for('notif.notificaciones') }}" class="mobile-icon position-relative" title="Notificaciones" data-bs-toggle="tooltip">
                 <i class="bi bi-bell"></i>
                 {% if unread_notifs and unread_notifs > 0 %}
                 <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="width: 10px; height: 10px;"></span>
                 {% endif %}
             </a>
-            {% else %}
-            <!-- Relleno para usuarios regulares -->
-            <a href="#" class="mobile-icon"><i class="bi bi-bell"></i></a>
-            {% endif %}
             
-            <a href="{{ url_for('user.logout') }}" class="mobile-icon"><i class="bi bi-box-arrow-right"></i></a>
+            <a href="{{ url_for('user.logout') }}" class="mobile-icon" title="Cerrar Sesión" data-bs-toggle="tooltip"><i class="bi bi-box-arrow-right"></i></a>
         {% else %}
             <a href="{{ url_for('user.login') }}" class="mobile-bottom-text">
                 <i class="bi bi-box-arrow-in-right" style="font-size: 1.4rem;"></i> Login
@@ -301,12 +296,62 @@
         </div>
     </div>
 
+    <!-- =========================================
+         SISTEMA DE COMUNICADOS (POPUP OBLIGATORIO)
+         ========================================= -->
+    {% if active_popup %}
+    <div class="modal fade glass-modal" id="announcementModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" style="z-index: 9999999;">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="border: 2px solid #4ade80; box-shadow: 0 0 30px rgba(74, 222, 128, 0.4) !important;">
+                <div class="modal-header border-0 pb-0 text-center">
+                    <h4 class="modal-title text-success fw-bold w-100"><i class="bi bi-megaphone-fill"></i> {{ active_popup.titulo }}</h4>
+                </div>
+                <div class="modal-body border-0 py-4 text-center">
+                    <p class="mb-0" style="white-space: pre-wrap; font-size: 1.15rem; line-height: 1.6;">{{ active_popup.mensaje }}</p>
+                </div>
+                <div class="modal-footer border-0 d-flex flex-column gap-2">
+                    <button type="button" class="btn btn-success glass-btn w-100 py-3 fw-bold" onclick="handleAnnouncement({{ active_popup.id }}, 'dismiss')">
+                        <i class="bi bi-check2-all"></i> ¡Entendido! No volver a mostrar
+                    </button>
+                    <button type="button" class="btn btn-outline-light glass-btn w-100 py-2 small opacity-75" onclick="handleAnnouncement({{ active_popup.id }}, 'remind')">
+                        Recordar más tarde
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var myModal = new bootstrap.Modal(document.getElementById('announcementModal'));
+            myModal.show();
+        });
+        
+        function handleAnnouncement(id, action) {
+            fetch("{{ url_for('notif.marcar_comunicado_ajax') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({id: id, action: action})
+            }).then(res => res.json()).then(data => {
+                var modalEl = document.getElementById('announcementModal');
+                var modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+            }).catch(err => console.error(err));
+        }
+    </script>
+    {% endif %}
+
     <script>
         let deleteUrl = '';
         let deleteStep = 1;
         let deleteModal = null;
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Inicialización de Tooltips de Bootstrap (Global)
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
             // Inicialización del modal de Bootstrap
             const deleteModalEl = document.getElementById('deleteModal');
             if(deleteModalEl) deleteModal = new bootstrap.Modal(deleteModalEl);

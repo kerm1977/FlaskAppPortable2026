@@ -1,13 +1,15 @@
 # app.py
 import os
 import subprocess
+from datetime import datetime
 from flask import Flask
 from db import db, init_db
 from flask_login import LoginManager
 from user import user_bp
 from routes import routes_bp
 from notif import notif_bp  # IMPORTAMOS EL NUEVO BLUEPRINT
-from models import User, AppConfig, Notification  # IMPORTAMOS EL MODELO NOTIFICATION
+# IMPORTAMOS LOS NUEVOS MODELOS DE COMUNICADOS
+from models import User, AppConfig, Notification, Announcement, AnnouncementReceipt  
 from werkzeug.security import generate_password_hash
 from flask_migrate import Migrate
 from sqlalchemy.exc import OperationalError
@@ -36,27 +38,81 @@ app.register_blueprint(routes_bp)
 app.register_blueprint(notif_bp)  # REGISTRAMOS LAS RUTAS DE NOTIFICACIONES
 
 # ==================================================
-# INYECTOR DE VARIABLES GLOBALES (DESDE BASE DE DATOS)
+# INYECTOR DE VARIABLES GLOBALES Y POPUPS
 # ==================================================
 @app.context_processor
 def inject_global_settings():
     from flask_login import current_user
     unread_notifs = 0
+    active_popup = None
+    
     try:
-        # Calcular notificaciones no leídas solo si el usuario es Superadmin
-        if current_user.is_authenticated and current_user.is_superuser:
-            unread_notifs = Notification.query.filter_by(leida=False).count()
+        if current_user.is_authenticated:
+            now = datetime.utcnow()
             
+            # 1. Extraer el grupo del usuario de forma ultra-segura para comparaciones
+            user_group = ''
+            if getattr(current_user, 'datos_adicionales', None):
+                if isinstance(current_user.datos_adicionales, dict):
+                    user_group = current_user.datos_adicionales.get('Nombre_Grupo', '')
+                elif isinstance(current_user.datos_adicionales, str):
+                    import json
+                    try: 
+                        user_group = json.loads(current_user.datos_adicionales).get('Nombre_Grupo', '')
+                    except: 
+                        pass
+            
+            user_email_clean = str(current_user.email).strip().lower()
+            
+            # 2. Obtener TODOS los comunicados vigentes (cuyas fechas ya pasaron)
+            query = Announcement.query.filter(Announcement.scheduled_for <= now)
+            all_past_announcements = query.order_by(Announcement.scheduled_for.desc()).all()
+            
+            # 3. Filtrar los comunicados que corresponden a este usuario (Individual, Grupo o Todos)
+            my_announcements = []
+            for ann in all_past_announcements:
+                target_val = str(ann.target_value or '').strip().lower()
+                
+                if ann.target_type == 'all':
+                    my_announcements.append(ann)
+                elif ann.target_type == 'individual':
+                    # Soporte multi-correo: dividimos por coma y limpiamos cada uno
+                    target_emails = [e.strip().lower() for e in target_val.split(',')]
+                    if user_email_clean in target_emails:
+                        my_announcements.append(ann)
+                elif ann.target_type == 'grupo' and str(user_group).strip().lower() == target_val:
+                    my_announcements.append(ann)
+            
+            # 4. Buscar IDs de comunicados que el usuario ya marcó como "No Mostrar" (Descartados)
+            dismissed_receipts = AnnouncementReceipt.query.filter_by(user_id=current_user.id, no_mostrar=True).all()
+            dismissed_ids = [r.announcement_id for r in dismissed_receipts]
+            
+            # 5. Seleccionar el Pop-Up activo (el más reciente de "mi lista" que no haya sido descartado)
+            for ann in my_announcements:
+                if ann.id not in dismissed_ids:
+                    active_popup = ann
+                    break  # Solo mostramos un Pop-up obligatorio a la vez
+            
+            # 6. Calcular los "No Leídos" para la Campanita de ESTE usuario (comunicados pendientes)
+            unread_notifs = len([a for a in my_announcements if a.id not in dismissed_ids])
+            
+            # 7. Si además es Superadmin, sumarle las alertas de sistema (Logs) a la campanita
+            if current_user.is_superuser:
+                unread_notifs += Notification.query.filter_by(leida=False).count()
+                
+        # 8. Traer ajustes estéticos y de configuración
         config = AppConfig.query.first()
         if config:
             return {
                 'global_site_name': config.site_name,
                 'global_support_email': config.support_email,
                 'global_theme': config.global_theme,
-                'unread_notifs': unread_notifs
+                'unread_notifs': unread_notifs,
+                'active_popup': active_popup
             }
-    except Exception:
-        # Pasa en silencio si la tabla aún no se ha creado
+    except Exception as e:
+        # Pasa en silencio si la tabla aún no se ha creado o hay errores de BD
+        print(f"Error Context Processor: {e}")
         pass
         
     # Valores por defecto de emergencia
@@ -64,7 +120,8 @@ def inject_global_settings():
         'global_site_name': 'GlassApp Portable',
         'global_support_email': 'soporte@midominio.com',
         'global_theme': '',
-        'unread_notifs': unread_notifs
+        'unread_notifs': unread_notifs,
+        'active_popup': active_popup
     }
 
 # ==================================================
